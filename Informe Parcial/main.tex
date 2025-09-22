@@ -277,7 +277,7 @@ De manera similar, el código provee una gran cantidad de utiliarios \textit{wra
 
 \section{Tramas de datos utilizadas}
 
-El tracker utiliza la estructura estándar de paquetes APRS (Automatic Packet Reporting System) para la transmisión y recepción de datos de localización y telemetría. La trama sencilla de un paquete APRS incluye las siguientes secciones:
+El tracker utiliza la estructura estándar de paquetes APRS (Automatic Packet Reporting System) para la transmisión y recepción de datos de localización y telemetría. A continuación se muestra una tabla con una trama sencilla de un paquete APRS, con un ejemplo ilustrativo:
 
 \small
 
@@ -290,12 +290,31 @@ El tracker utiliza la estructura estándar de paquetes APRS (Automatic Packet Re
 N0CALL-9 & APRS & WIDE1-1,WIDE2-1 & : & MENSAJE! \\
 \bottomrule
 \end{tabular}
-\label{fig:trama-aprs}
 \caption{Estructura general de un paquete APRS.}
+\label{fig:trama-aprs}
 \end{figure}
 
+Nótese que en la figura \ref{fig:trama-aprs}, el símbolo utilizado es ">", pero este y otros parámetros son configurables en el archivo \textit{tracker\_conf.json}, el cual es leído por el \textit{firmware} al momento de inicializar el sistema, además permite tener diferentes tipos de \textit{beacons}, cada uno con su configuración particular de acuerdo a las necesidad de la aplicación.
+En la imagen \ref{fig:tramas-ejemplo} se presentan algunos ejemplos de tramas APRS recibidas por el \textit{tracker}.
+
+\begin{figure}[htbp]
+\begin{tabular}{|l|}
+\hline
+TI2BSH-7>APLRT1,TI2JR-10*:!/IN-m97CebNMQ\\
+\hline
+TI2BSH-10>APLRG1,TI2JR-10*:!LIN-96Q-a  GLoRa APR\\
+\hline
+TI3WTI-10>APLRG1,TI2JR-10*:!LIOT9;-1\_ xGTEC Batt=4.13V \\
+\hline
+TI2JR-10>APLRG1,WIDE1-1:!LIJgp9;"M  GLoRa APRS \\
+\hline
+\end{tabular}
+\caption{Ejemplos de tramas APRS recibidas y transmitidas por el \textit{tracker}.}
+\label{fig:tramas-ejemplo}
+\end{figure}
 % you can choose not to have a title for an appendix
 % if you want by leaving the argument blank
+\vspace{1cm}
 \section{Cronograma}
 
 Acorde a los avances realizados en el proyecto y los resultados obtenidos, se están cumpliendo los tiempos establecidos, por lo que se plantea continuar con el cronograma propuesto inicialmente. A continuación, se presenta el cronograma detallado de las actividades planificadas para la culminación del proyecto:
@@ -311,7 +330,7 @@ Acorde a los avances realizados en el proyecto y los resultados obtenidos, se es
     \centering
     \includegraphics[width=1\linewidth]{fig/Gantt-2.jpeg}
     \caption{Segunda Parte del Cronograma}
-    \label{fig:gantt1}
+    \label{fig:gantt2}
 \end{figure}
 
 \section{Anexos}
