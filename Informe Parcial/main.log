@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2026/dev/Arch Linux) (preloaded format=pdflatex 2025.8.27)  21 SEP 2025 19:35
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2026/dev/Arch Linux) (preloaded format=pdflatex 2025.8.27)  21 SEP 2025 20:12
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -478,23 +478,7 @@ Package biblatex Info: Automatic encoding selection.
 
 Package biblatex Info: Trying to load bibliographic data...
 Package biblatex Info: ... file 'main.bbl' found.
-(./main.bbl
-
-Package biblatex Warning: Biber reported the following issues
-(biblatex)                with 'semtech_lora_and_lorawan':
-(biblatex)                - online entry 'semtech_lora_and_lorawan' (references.bib): Invalid format 'n.d.' of date field 'date' - ignoring.
-
-
-Package biblatex Warning: Biber reported the following issues
-(biblatex)                with 'lilygo_tbeam_nodate':
-(biblatex)                - online entry 'lilygo_tbeam_nodate' (references.bib): Invalid format 'n.d.' of date field 'date' - ignoring.
-
-
-Package biblatex Warning: Biber reported the following issues
-(biblatex)                with 'heltec_wifilora32_v3_nodate':
-(biblatex)                - online entry 'heltec_wifilora32_v3_nodate' (references.bib): Invalid format 'n.d.' of date field 'date' - ignoring.
-
-)
+(./main.bbl)
 Package biblatex Info: Reference section=0 on input line 49.
 Package biblatex Info: Reference segment=0 on input line 49.
  (/usr/share/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
@@ -519,6 +503,11 @@ File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: End \AtBeginDocument code.
 
+Underfull \hbox (badness 1648) in paragraph at lines 78--81
+[]\T1/ptm/b/it/12 Resumen\T1/ptm/b/n/9 ---Este documento recopila información sobre
+ []
+
+
 Underfull \hbox (badness 1377) in paragraph at lines 96--97
 \T1/ptm/m/n/10 modernas de monitoreo, telemetría y localización. Entre
  []
@@ -539,276 +528,43 @@ Underfull \hbox (badness 1527) in paragraph at lines 100--101
  []
 
 
-Underfull \hbox (badness 1917) in paragraph at lines 106--107
-\T1/ptm/m/n/10 identificado públicamente por los radioaficionados como
+
+
+Underfull \hbox (badness 3557) in paragraph at lines 109--110
+\T1/ptm/m/n/10 resultados obtenidos, se están cumpliendo los tiempos
  []
 
 
-Underfull \hbox (badness 2119) in paragraph at lines 110--111
-\T1/ptm/m/n/10 diseñado para localización de objetos, este uso no ha
+Underfull \hbox (badness 3815) in paragraph at lines 109--110
+\T1/ptm/m/n/10 establecidos, por lo que se plantea continuar con el
  []
 
 
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 120--121
- \T1/ptm/m/it/10 3) Bandas de Frecuencia: [][] \T1/ptm/m/n/10 Como se mencionó
- []
-
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <7> on input line 123.
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <5> on input line 123.
-
-Underfull \hbox (badness 10000) in paragraph at lines 146--147
- \T1/ptm/m/it/10 1) Aplicaciones: [][] \T1/ptm/m/n/10 Las aplicaciones de LoRa, están
+Underfull \hbox (badness 10000) in paragraph at lines 109--110
+\T1/ptm/m/n/10 cronograma propuesto inicialmente. A continuación,
  []
 
 
-Underfull \hbox (badness 1540) in paragraph at lines 146--147
-\T1/ptm/m/n/10 lo más usual telemetría utilizando sensores, esto ayuda
+Underfull \hbox (badness 2088) in paragraph at lines 109--110
+\T1/ptm/m/n/10 se presenta el cronograma detallado de las actividades
  []
 
+<fig/Gantt-1.jpeg, id=1, 963.6pt x 539.01375pt>
+File: fig/Gantt-1.jpeg Graphic file (type jpg)
+<use fig/Gantt-1.jpeg>
+Package pdftex.def Info: fig/Gantt-1.jpeg  used on input line 113.
+(pdftex.def)             Requested size: 252.0pt x 140.96272pt.
+<fig/Gantt-2.jpeg, id=2, 963.6pt x 487.8225pt>
+File: fig/Gantt-2.jpeg Graphic file (type jpg)
+<use fig/Gantt-2.jpeg>
+Package pdftex.def Info: fig/Gantt-2.jpeg  used on input line 120.
+(pdftex.def)             Requested size: 252.0pt x 127.57521pt.
 
 
 [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}{/usr/share/texmf-dist/fonts/enc/dvips/base/8r.enc}
 
 
-]
-Underfull \hbox (badness 10000) in paragraph at lines 188--189
-[]\T1/ptm/m/n/10 Ambos sistemas debe ajustarse a la legislación
- []
-
-
-Package biblatex Warning: Using fallback definition for \mkbibdatelong.
-(biblatex)                The command should be defined in the .lbx file.
-(biblatex)                If you see this message, the .lbx file could not be
-(biblatex)                loaded, is faulty or does not contain a definition
-(biblatex)                for \mkbibdatelong.
-
-
-
-
-Package biblatex Warning: Using fallback definition for \mkbibdatelong.
-(biblatex)                The command should be defined in the .lbx file.
-(biblatex)                If you see this message, the .lbx file could not be
-(biblatex)                loaded, is faulty or does not contain a definition
-(biblatex)                for \mkbibdatelong.
-
-
-Package biblatex Warning: Bibliography string 'and' untranslated
-(biblatex)                at entry 'kwiecien2013computer' on input line 192.
-
-
-Package biblatex Warning: Using fallback definition for \mkbibdatelong.
-(biblatex)                The command should be defined in the .lbx file.
-(biblatex)                If you see this message, the .lbx file could not be
-(biblatex)                loaded, is faulty or does not contain a definition
-(biblatex)                for \mkbibdatelong.
-
-
-Underfull \hbox (badness 2042) in paragraph at lines 192--192
-\T1/ptm/m/it/10 20th International Conference, CN 2013, Lwowek
- []
-
-
-Underfull \hbox (badness 7649) in paragraph at lines 192--192
-\T1/ptm/m/it/10 Slaski, Poland, June 17-21, 2013. Proceedings\T1/ptm/m/n/10 .
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 192--192
-\T1/ptm/m/n/10 Communications in Computer and Information
- []
-
-
-Underfull \hbox (badness 2698) in paragraph at lines 192--192
-\T1/ptm/m/n/10 Science. Springer Berlin Heidelberg, 2013. \T1/ptm/m/sc/10 isbn\T1/ptm/m/n/10 :
- []
-
-
-Package biblatex Warning: Using fallback definition for \mkbibdatelong.
-(biblatex)                The command should be defined in the .lbx file.
-(biblatex)                If you see this message, the .lbx file could not be
-(biblatex)                loaded, is faulty or does not contain a definition
-(biblatex)                for \mkbibdatelong.
-
-
-Package biblatex Warning: Using fallback definition for \mkbibdatelong.
-(biblatex)                The command should be defined in the .lbx file.
-(biblatex)                If you see this message, the .lbx file could not be
-(biblatex)                loaded, is faulty or does not contain a definition
-(biblatex)                for \mkbibdatelong.
-
-
-Package biblatex Warning: Using fallback definition for \mkbibordinal.
-(biblatex)                The command should be defined in the .lbx file.
-(biblatex)                If you see this message, the .lbx file could not be
-(biblatex)                loaded, is faulty or does not contain a definition
-(biblatex)                for \mkbibordinal.
-
-
-Package biblatex Warning: Bibliography string 'december' untranslated
-(biblatex)                at entry 'sigidwiki_aprs_2023' on input line 192.
-
-
-Package biblatex Warning: Bibliography string 'urlseen' untranslated
-(biblatex)                at entry 'sigidwiki_aprs_2023' on input line 192.
-
-
-Package biblatex Warning: Using fallback definition for \mkbibdateshort.
-(biblatex)                The command should be defined in the .lbx file.
-(biblatex)                If you see this message, the .lbx file could not be
-(biblatex)                loaded, is faulty or does not contain a definition
-(biblatex)                for \mkbibdateshort.
-
-LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 192.
-(/usr/share/texmf-dist/tex/latex/psnfss/ts1ptm.fd
-File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
-)
-
-Package biblatex Warning: Bibliography string 'urlseen' untranslated
-(biblatex)                at entry 'semtech_lora_and_lorawan' on input line 192.
-
-
-Package biblatex Warning: Using fallback definition for \mkbibdateshort.
-(biblatex)                The command should be defined in the .lbx file.
-(biblatex)                If you see this message, the .lbx file could not be
-(biblatex)                loaded, is faulty or does not contain a definition
-(biblatex)                for \mkbibdateshort.
-
-
-Package biblatex Warning: Using fallback definition for \mkbibdatelong.
-(biblatex)                The command should be defined in the .lbx file.
-(biblatex)                If you see this message, the .lbx file could not be
-(biblatex)                loaded, is faulty or does not contain a definition
-(biblatex)                for \mkbibdatelong.
-
-
-Package biblatex Warning: Using fallback definition for \mkbibordinal.
-(biblatex)                The command should be defined in the .lbx file.
-(biblatex)                If you see this message, the .lbx file could not be
-(biblatex)                loaded, is faulty or does not contain a definition
-(biblatex)                for \mkbibordinal.
-
-
-Package biblatex Warning: Bibliography string 'may' untranslated
-(biblatex)                at entry 'lora_rp002-1.0.3_2021' on input line 192.
-
-
-Package biblatex Warning: Bibliography string 'urlseen' untranslated
-(biblatex)                at entry 'lora_rp002-1.0.3_2021' on input line 192.
-
-
-Package biblatex Warning: Using fallback definition for \mkbibdateshort.
-(biblatex)                The command should be defined in the .lbx file.
-(biblatex)                If you see this message, the .lbx file could not be
-(biblatex)                loaded, is faulty or does not contain a definition
-(biblatex)                for \mkbibdateshort.
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 192--192
-[]\T1/ptm/m/n/10 LoRa Alliance Technical Committee Regional
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 192--192
-\T1/ptm/m/n/10 Parameters Workgroup. RP002-1.0.3 LoRaWAN\TS1/ptm/m/n/10 ®
- []
-
-
-Package biblatex Warning: Bibliography string 'urlseen' untranslated
-(biblatex)                at entry 'lilygo_tbeam_nodate' on input line 192.
-
-
-Package biblatex Warning: Using fallback definition for \mkbibdateshort.
-(biblatex)                The command should be defined in the .lbx file.
-(biblatex)                If you see this message, the .lbx file could not be
-(biblatex)                loaded, is faulty or does not contain a definition
-(biblatex)                for \mkbibdateshort.
-
-
-Package biblatex Warning: Bibliography string 'urlseen' untranslated
-(biblatex)                at entry 'heltec_wifilora32_v3_nodate' on input line 192.
-
-
-Package biblatex Warning: Using fallback definition for \mkbibdateshort.
-(biblatex)                The command should be defined in the .lbx file.
-(biblatex)                If you see this message, the .lbx file could not be
-(biblatex)                loaded, is faulty or does not contain a definition
-(biblatex)                for \mkbibdateshort.
-
-
-Package biblatex Warning: Using fallback definition for \mkbibdatelong.
-(biblatex)                The command should be defined in the .lbx file.
-(biblatex)                If you see this message, the .lbx file could not be
-(biblatex)                loaded, is faulty or does not contain a definition
-(biblatex)                for \mkbibdatelong.
-
-
-Package biblatex Warning: Bibliography string 'may' untranslated
-(biblatex)                at entry 'micitt_pnaf_2023' on input line 192.
-
-
-Underfull \hbox (badness 4792) in paragraph at lines 192--192
-[]\T1/ptm/m/n/10 Ministerio de Ciencia, Innovación, Tecnología y
- []
-
-
-Underfull \hbox (badness 5533) in paragraph at lines 192--192
-\T1/ptm/m/n/10 Telecomunicaciones (MICITT). Plan Nacional de
- []
-
-
-Package biblatex Warning: Using fallback definition for \mkbibdatelong.
-(biblatex)                The command should be defined in the .lbx file.
-(biblatex)                If you see this message, the .lbx file could not be
-(biblatex)                loaded, is faulty or does not contain a definition
-(biblatex)                for \mkbibdatelong.
-
-
-Underfull \hbox (badness 3138) in paragraph at lines 192--192
-[]\T1/ptm/m/n/10 Superintendencia de Telecomunicaciones (SUTEL).
- []
-
-
-Package biblatex Warning: Using fallback definition for \mkbibdatelong.
-(biblatex)                The command should be defined in the .lbx file.
-(biblatex)                If you see this message, the .lbx file could not be
-(biblatex)                loaded, is faulty or does not contain a definition
-(biblatex)                for \mkbibdatelong.
-
-
-Package biblatex Warning: Bibliography string 'urlseen' untranslated
-(biblatex)                at entry 'comreg0834' on input line 192.
-
-
-Package biblatex Warning: Using fallback definition for \mkbibdateshort.
-(biblatex)                The command should be defined in the .lbx file.
-(biblatex)                If you see this message, the .lbx file could not be
-(biblatex)                loaded, is faulty or does not contain a definition
-(biblatex)                for \mkbibdateshort.
-
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
-
-
-[2]
-
-<fig/Gantt-1.jpeg, id=14, 963.6pt x 539.01375pt>
-File: fig/Gantt-1.jpeg Graphic file (type jpg)
-<use fig/Gantt-1.jpeg>
-Package pdftex.def Info: fig/Gantt-1.jpeg  used on input line 227.
-(pdftex.def)             Requested size: 252.0pt x 140.96272pt.
-<fig/Gantt-2.jpeg, id=15, 963.6pt x 487.8225pt>
-File: fig/Gantt-2.jpeg Graphic file (type jpg)
-<use fig/Gantt-2.jpeg>
-Package pdftex.def Info: fig/Gantt-2.jpeg  used on input line 234.
-(pdftex.def)             Requested size: 252.0pt x 127.57521pt.
-
-
-[3 <./fig/Gantt-1.jpeg> <./fig/Gantt-2.jpeg>] (./main.aux)
+ <./fig/Gantt-1.jpeg> <./fig/Gantt-2.jpeg>] (./main.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
@@ -822,18 +578,18 @@ Package logreq Info: Writing requests to 'main.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 12442 strings out of 475171
- 236975 string characters out of 5767095
- 1055641 words of memory out of 5000000
- 35339 multiletter control sequences out of 15000+600000
- 668177 words of font info for 132 fonts, out of 8000000 for 9000
+ 12157 strings out of 475171
+ 230114 string characters out of 5767095
+ 1040719 words of memory out of 5000000
+ 35060 multiletter control sequences out of 15000+600000
+ 665620 words of font info for 129 fonts, out of 8000000 for 9000
  17 hyphenation exceptions out of 8191
- 66i,6n,81p,772b,1432s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on main.pdf (3 pages, 371427 bytes).
+ 66i,6n,81p,772b,405s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</usr/share/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on main.pdf (1 page, 344789 bytes).
 PDF statistics:
- 42 PDF objects out of 1000 (max. 8388607)
- 24 compressed objects within 1 object stream
+ 31 PDF objects out of 1000 (max. 8388607)
+ 17 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  11 words of extra memory for PDF output out of 10000 (max. 10000000)
 
