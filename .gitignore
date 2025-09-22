@@ -1,2 +1,17 @@
 .pio
 .vscode
+
+
+# LaTeX byproducts
+
+*.aux
+*.bbl
+*.bcf
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.pdf
+*.run.xml
+*.synctex.gz
+*.blg
