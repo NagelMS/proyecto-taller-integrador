@@ -14,10 +14,12 @@
 \usepackage[utf8]{inputenc}   % Para acentos y ñ
 \usepackage[T1]{fontenc}      % Para acentos correctos en salida PDF
 \usepackage{babel}
-
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning}
 \usepackage{graphicx}
 
 \usepackage[font=footnotesize,labelfont=bf]{caption}
+\usepackage{hyperref} % Para enlaces y \url
 
 % *** GRAPHICS RELATED PACKAGES ***
 %
@@ -83,7 +85,7 @@ Este documento recopila información sobre el desarrollo de un módulo Tracker b
 
 % Note that keywords are not normally used for peerreview papers.
 \begin{IEEEkeywords}
-RF, LoRa, APRS, modulación, protocolo
+Trama, modulación, registros, potencia.
 \end{IEEEkeywords}
 
 
@@ -93,13 +95,65 @@ RF, LoRa, APRS, modulación, protocolo
 
 \section{Introducción}
 
-\IEEEPARstart{L}{os} sistemas de comunicación de datos en tiempo real han adquirido un papel fundamental en aplicaciones modernas de monitoreo, telemetría y localización. Entre estos, el Automatic Packet Reporting System (APRS) y la tecnología LoRa destacan por su capacidad de transmitir información de manera eficiente sobre distancias cortas y largas, utilizando diferentes métodos de modulación y protocolos de comunicación.
-
-APRS, creado por Bob Bruninga (WB4APR), permite la transmisión de paquetes de datos digitales sobre bandas de radioaficionados, facilitando la comunicación de información de localización, telemetría y mensajes de emergencia. LoRa, mediante la modulación Chirp Spread Spectrum, proporciona comunicación de largo alcance con bajo consumo energético, siendo ampliamente utilizado en aplicaciones de IoT y telemetría en entornos rurales y urbanos.
-
-El presente documento analiza el funcionamiento de APRS y LoRa, sus aplicaciones, protocolos de comunicación y los dispositivos necesarios para su operación. De la misma forma, se relaciona con la legislación costarricense vigente, específicamente con el Plan Nacional de Atribución de Frecuencias (PNAF), abordando aspectos como permisos, bandas de frecuencia y límites de potencia permitidos.
+\IEEEPARstart{P}{}ara desarrollar un \textit{tracker} capaz de transmitir y recibir datos de localización con múltiples protocolos de comunicación, es necesario integrar diversos componentes electrónicos y módulos de comunicación que permitan la adquisición, procesamiento y transmisión de datos. El proyecto se basa en la utilización de una placa de desarrollo \textit{LilyGo TTGO T-Beam v1.2}, la cual tiene integrados múltiples componentes esenciales para la funcionalidad del sistema, que requieren \textit{firmware} adecuado para la arbitración de tareas, administración de potencia y otras características propias de la aplicación, por lo que se neceista que existan interfaces y pautas definidas para que cada subsistema pueda comunicarse de manera efectiva. A continuación, se describen los sensores, dispositivos y procesador a utilizar, el diseño de la solución, diagrama eléctrico, tipo de comunicación de periféricos, pseudo-código del sistema y las tramas de datos utilizadas para lograr comunicar la posición del \textit{tracker} a una página web en tiempo real de manera eficiente.
 
 \section{Sensores, dispositivos y procesador a utilizar}
+
+El módulo \textit{LilyGo TTGO T-Beam v1.2} es una plataforma de desarrollo basada en el microcontrolador ESP32-DOWDQ6, que integra el transceptor LoRa SX1278, receptor GPS NEO-6M/M8N, un circuito integrado para administración de potencia AXP2101, una pantalla OLED SSD1306 128x64 y un convertidor USB a UART CP2104, permitiéndole así interconectar y gestionar múltiples periféricos para monitorización y envío de datos. Aunque la placa de desarrollo cuente con otros circuitos integrados y funcionalidades, los que se encuentran en uso para el desarrollo del proyecto son los mencionados anteriormente. En una descripción de bajo nivel, el \textit{SOC} principal ESP32-DOWDQ6 cuenta con diversos protocolos de comunicación estándar que le permiten comincarse con las interfaces del resto de módulos, los cuales cuentan con registros de almacenamiento de datos de telemetría y configuración. El \textit{SOC} principal es el encargado de la arbitración de las transacciones de \textit{LoRa}, empaquetado de datos, cálculos, administración de energía en los módulos periféricos, actualización de la pantalla OLED y demás tareas necesarias para el correcto funcionamiento del sistema. A continuación, se presenta un diagrama de bloques que ilustra la interconexión entre el microcontrolador ESP32-DOWDQ6 y los periféricos mencionados:
+
+\begin{figure}[h!]
+\begin{tikzpicture}[
+    block/.style={rectangle, draw, text centered, minimum width=2cm, minimum height=1cm},
+    arrow/.style={<->, >=Stealth, thick}
+]
+
+
+\coordinate (center) at (0,0);
+\coordinate (top) at (0,2.2);
+\coordinate (bottom) at (0,-2.2);
+\coordinate (left) at (-3,0);
+\coordinate (right) at (3,0);
+\coordinate (diagonal) at (-2.5,-1.8);
+
+
+\node[block, fill=blue!30, minimum width=2.5cm, minimum height=1.5cm] (center_block) at (center) {ESP32\\-DOWDQ6};
+\node[block, fill=red!30] (top_block) at (top) {NEO-6M/M8N};
+\node[block, fill=green!30] (bottom_block) at (bottom) {SX1278};
+\node[block, fill=orange!30] (left_block) at (left) {SSD1306};
+\node[block, fill=purple!30] (right_block) at (right) {AXP2101};
+\node[block, fill=yellow!30, minimum width=1.2cm, minimum height=0.7cm] (diagonal_block) at (diagonal) {CP2104};
+
+
+\draw[arrow] ([xshift=-6mm]center_block.north) -- ([xshift=-6mm]top_block.south);
+\draw[arrow] ([xshift=-2mm]center_block.north) -- ([xshift=-2mm]top_block.south);
+\draw[arrow] ([xshift=2mm]center_block.north) -- ([xshift=2mm]top_block.south);
+\draw[arrow] ([xshift=6mm]center_block.north) -- ([xshift=6mm]top_block.south);
+
+
+\draw[arrow] ([xshift=-6mm]center_block.south) -- ([xshift=-6mm]bottom_block.north);
+\draw[arrow] ([xshift=-2mm]center_block.south) -- ([xshift=-2mm]bottom_block.north);
+\draw[arrow] ([xshift=2mm]center_block.south) -- ([xshift=2mm]bottom_block.north);
+\draw[arrow] ([xshift=6mm]center_block.south) -- ([xshift=6mm]bottom_block.north);
+
+
+\draw[arrow] ([yshift=2mm]center_block.west) -- ([yshift=2mm]left_block.east);
+\draw[arrow] ([yshift=-2mm]center_block.west) -- ([yshift=-2mm]left_block.east);
+
+
+\draw[arrow] ([yshift=2mm]center_block.east) -- ([yshift=2mm]right_block.west);
+\draw[arrow] ([yshift=-2mm]center_block.east) -- ([yshift=-2mm]right_block.west);
+
+
+\draw[arrow] (center_block.south west) -- (diagonal_block.north east);
+
+\draw[->, >=Stealth, thick] ([xshift=-6mm]diagonal_block.west) -- (diagonal_block.west);
+\draw[<-, >=Stealth, thick] ([xshift=-6mm, yshift=-3mm]diagonal_block.west) -- ([yshift=-3mm]diagonal_block.west);
+\node[above, font=\small] at ([xshift=-5mm, yshift=2mm]diagonal_block.west) {USB};
+
+\end{tikzpicture}
+\caption{Diagrama de bloques de la placa de desarrollo \textit{LilyGo T-Beam v1.2}.}
+\label{fig:diagrama-bloques}
+\end{figure}
 
 \section{Diseño de la solución}
 
@@ -107,7 +161,108 @@ El presente documento analiza el funcionamiento de APRS y LoRa, sus aplicaciones
 
 \section{Tipo de comunicación de periféricos}
 
+Los periféricos integrados en la placa de desarrollo \textit{LilyGo TTGO T-Beam v1.2} utilizan diferentes protocolos de comunicación para interactuar con el microcontrolador ESP32-DOWDQ6, los principales siendo \textit{I2C}, \textit{SPI} y \textit{UART}. Las tramas de datos son definidas acorde a las características de cada módulo, sus registros propios y las capacidades de cada uno. Para el caso particular del transceptor LoRa SX1278, se utiliza el protocolo SPI para la comunicación con el microcontrolador, permitiendo la configuración de parámetros como frecuencia, potencia de transmisión, ancho de banda y demás ajustes necesarios para la operación del módulo. La comunicación con el receptor GPS NEO-6M/M8N se realiza a través del protocolo UART, enviando y recibiendo datos en formato NMEA que contienen información de posición, velocidad y tiempo. La pantalla OLED SSD1306 utiliza el protocolo I2C para recibir comandos e información gráfica desde el microcontrolador, permitiendo la visualización de datos en tiempo real.
+
+\begin{figure}[h!]
+\begin{tikzpicture}[
+    block/.style={rectangle, draw, fill=blue!20, text centered, minimum width=2.5cm, minimum height=1.5cm},
+    arrow/.style={->, >=Stealth, thick},
+    signal/.style={font=\small}
+]
+
+\node[block] (master) at (0,0) {SPI Maestro};
+\node[block] (slave) at (6,0) {SPI Esclavo};
+
+\draw[arrow] ([yshift=8mm]master.east) -- ([yshift=8mm]slave.west) node[midway, above, signal] {SCLK};
+\draw[arrow] ([yshift=4mm]master.east) -- ([yshift=4mm]slave.west) node[midway, above, signal] {MOSI};
+\draw[arrow] ([yshift=-4mm]slave.west) -- ([yshift=-4mm]master.east) node[midway, below, signal] {MISO};
+\draw[arrow] ([yshift=-8mm]master.east) -- ([yshift=-8mm]slave.west) node[midway, below, signal] {CS/SS};
+
+\end{tikzpicture}
+\caption{Diagrama de comunicación SPI.}
+\end{figure}
+\vspace{2cm}
+\begin{figure}[h!]
+\begin{tikzpicture}[
+    block/.style={rectangle, draw, fill=green!20, text centered, minimum width=2.5cm, minimum height=1.5cm},
+    arrow/.style={<->, >=Stealth, thick},
+    signal/.style={font=\small}
+]
+
+\node[block] (master) at (0,0) {I2C Maestro};
+\node[block] (slave) at (6,0) {I2C Esclavo};
+
+\draw[arrow] ([yshift=4mm]master.east) -- ([yshift=4mm]slave.west) node[midway, above, signal] {SDA};
+\draw[arrow] ([yshift=-4mm]master.east) -- ([yshift=-4mm]slave.west) node[midway, below, signal] {SCL};
+
+\draw[thick] ([xshift=1cm, yshift=4mm]master.east) -- ([xshift=1cm, yshift=8mm]master.east) node[above, signal] {$V_{DD}$};
+\draw[thick] ([xshift=1cm, yshift=-4mm]master.east) -- ([xshift=1cm, yshift=0mm]master.east);
+\node[signal] at ([xshift=0.7cm, yshift=6mm]master.east) {R};
+\node[signal] at ([xshift=0.7cm, yshift=-2mm]master.east) {R};
+
+\end{tikzpicture}
+\caption{Diagrama de comunicación I2C.
+\label{fig:i2c}}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \begin{tikzpicture}[>=latex, thick]
+
+        \coordinate (A) at (0,0);
+        \coordinate (B) at (6,0);
+
+        \node[draw, fill=orange!60, minimum width=2.5cm, minimum height=1.5cm, anchor=center] (devA) at (A) {Dispositivo 1};
+        \node[draw, fill=orange!60, minimum width=2.5cm, minimum height=1.5cm, anchor=center] (devB) at (B) {Dispositivo 2};
+
+        \draw[->, black] ([yshift=0.6cm]devA.east) -- ([yshift=0.6cm]devB.west)
+            node[midway, above, black] {TX};
+
+        \draw[->, black] ([yshift=-0.6cm]devB.west) -- ([yshift=-0.6cm]devA.east)
+            node[midway, below, black] {RX};
+
+    \end{tikzpicture}
+    \caption{Diagrama de comunicación UART.}
+    \label{fig:uart-tx-rx}
+\end{figure}
+
+Nótese que en las figura \ref{fig:i2c}, se incluyen resistencias de pull-up en las líneas de datos, las cuales son esenciales para el correcto funcionamiento del protocolo I2C, asegurando niveles lógicos adecuados y evitando estados flotantes que podrían causar errores en la comunicación, además que a diferencia de \textit{I2C} y \textit{SPI}, el protocolo \textit{UART} no requiere de una línea de reloj, ya que la sincronización se logra mediante la configuración previa de la velocidad de transmisión (baud rate) en ambos dispositivos y en vez de tener una arquitectura maestro-esclavo, ambos dispositivos pueden enviar y recibir datos de manera independiente, siendo así \textit{full-duplex}.
+
+El resto de detalles de sobre las características eléctricas, el esquemático y los archivos \textit{CAD} de la placa de desarrollo \textit{LilyGo TTGO T-Beam v1.2} pueden ser encontrados en el repositorio oficial de \textit{GitHub} de \textit{LilyGo} que se encuentra en anexos.
+
 \section{Pseudo-código del sistema}
+
+Debido a que el \textit{firmware} utilizado está basado en repositorio de Ricardo Guzmán adjunto en anexos, el pseudo-código utiliza una arquitectura de \textit{superloop} propia del \textit{framework} de \textit{Arduino}, la cual es sencilla y eficiente para aplicaciones embebidas. A continuación, se presenta un diagrama simplificado que ilustra la estructura general del programa:
+
+\begin{center}
+\begin{tikzpicture}[
+    node distance=1.2cm and 2.5cm,
+    every node/.style={rectangle, draw=black, rounded corners, align=center, font=\small},
+    arrow/.style={-{Latex[length=3mm,width=2mm]}, thick}, % shorter arrows
+    init/.style={fill=blue!15, minimum width=4cm, minimum height=1.2cm},
+    super/.style={fill=green!20, minimum width=3cm, minimum height=1.4cm},
+    idle/.style={fill=yellow!25, minimum width=3cm, minimum height=1.2cm},
+    start/.style={fill=gray!20, minimum width=4cm, minimum height=1.2cm},
+    display/.style={fill=orange!20, minimum width=2.8cm, minimum height=1cm}
+]
+
+% Nodes
+\node[start] (start) {Punto de Entrada\\(Definido por el \textit{framework})\\Inicialización de periféricos};
+\node[init, below=of start] (init) {Inicialización de módulos externos al \textit{SOC} principal};
+\node[super, below=of init] (superloop) {\textit{Superloop}\\\footnotesize Polling de dispositivos\\(GPS, PMU)};
+\node[idle, right=1.8cm of superloop] (idle) {Recepción y Envío\\ de \textit{beacons}\\ LoRa};
+\node[display, below right=1.2cm and -1.5cm of superloop] (display) {Actualzación de\\ pantalla OLED};
+
+% Arrows
+\draw[arrow] (start) -- (init);
+\draw[arrow] (init) -- (superloop);
+\draw[arrow] (superloop) -- (idle);
+\draw[arrow] (idle) to[bend left=25] (superloop);
+\draw[arrow] (superloop) -- (display);
+\draw[arrow] (superloop.west) .. controls +(-0.5,0.3) and +(-0.5,-0.3) .. (superloop.north west);
+
+\end{tikzpicture}
+\end{center}
 
 \section{Tramas de datos utilizadas}
 
@@ -125,19 +280,23 @@ Acorde a los avances realizados en el proyecto y los resultados obtenidos, se es
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=1\linewidth]{fig/Gantt-1.jpeg}
-    \caption{Primera parte cronograma}
+    \caption{Primera Parte del Cronograma}
     \label{fig:gantt1}
 \end{figure}
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=1\linewidth]{fig/Gantt-2.jpeg}
-    \caption{Segunda parte cronograma}
+    \caption{Segunda Parte del Cronograma}
     \label{fig:gantt1}
 \end{figure}
 
+\section{Anexos}
 
-
+\begin{itemize}
+    \item \textbf{Repositorio oficial de LilyGo:} \url{https://github.com/Xinyuan-LilyGO/LilyGo-LoRa-Series}
+    \item \textbf{Repositorio de Ricardo Guzmán LoRa\_APRS\_Tracker:} \url{https://github.com/richonguzman/LoRa_APRS_Tracker}
+\end{itemize}
 
 
 
