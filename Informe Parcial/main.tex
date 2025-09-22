@@ -18,6 +18,11 @@
 \usetikzlibrary{arrows.meta, positioning}
 \usepackage{graphicx}
 
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{makecell}
+\usepackage{titlesec}
+
 \usepackage[font=footnotesize,labelfont=bf]{caption}
 \usepackage{hyperref} % Para enlaces y \url
 
@@ -234,6 +239,7 @@ El resto de detalles de sobre las características eléctricas, el esquemático 
 
 Debido a que el \textit{firmware} utilizado está basado en repositorio de Ricardo Guzmán adjunto en anexos, el pseudo-código utiliza una arquitectura de \textit{superloop} propia del \textit{framework} de \textit{Arduino}, la cual es sencilla y eficiente para aplicaciones embebidas. A continuación, se presenta un diagrama simplificado que ilustra la estructura general del programa:
 
+\begin{figure}[h!]
 \begin{center}
 \begin{tikzpicture}[
     node distance=1.2cm and 2.5cm,
@@ -246,14 +252,12 @@ Debido a que el \textit{firmware} utilizado está basado en repositorio de Ricar
     display/.style={fill=orange!20, minimum width=2.8cm, minimum height=1cm}
 ]
 
-% Nodes
 \node[start] (start) {Punto de Entrada\\(Definido por el \textit{framework})\\Inicialización de periféricos};
 \node[init, below=of start] (init) {Inicialización de módulos externos al \textit{SOC} principal};
 \node[super, below=of init] (superloop) {\textit{Superloop}\\\footnotesize Polling de dispositivos\\(GPS, PMU)};
-\node[idle, right=1.8cm of superloop] (idle) {Recepción y Envío\\ de \textit{beacons}\\ LoRa};
+\node[idle, right=1.8cm of superloop] (idle) {Recepción y Envío\\ de datos del \textit{beacon}\\ LoRa};
 \node[display, below right=1.2cm and -1.5cm of superloop] (display) {Actualzación de\\ pantalla OLED};
 
-% Arrows
 \draw[arrow] (start) -- (init);
 \draw[arrow] (init) -- (superloop);
 \draw[arrow] (superloop) -- (idle);
@@ -263,13 +267,32 @@ Debido a que el \textit{firmware} utilizado está basado en repositorio de Ricar
 
 \end{tikzpicture}
 \end{center}
+\label{fig:flujo}
+\caption{Diagrama simplificado del flujo del programa.}
+\end{figure}
+
+El código utiliza \textit{APIs} públicas de proyectos de código abierto, las cuales permiten la configuración y manejo de los periféricos integrados en la placa de desarrollo, un ejemplo de esto es \textit{RadioLib} adjunto en anexos, la cual es una librería para comunicación inalámbrica que soporta múltiples módulos de radio, incluyendo LoRa, y proporciona una interfaz sencilla para configurar y utilizar el transceptor SX1278. La librería maneja detalles complejos de la comunicación LoRa, como la modulación, codificación y gestión de paquetes, permitiendo a los desarrolladores centrarse en la lógica de su aplicación sin preocuparse por los aspectos de bajo nivel del protocolo LoRa, permitiendo además la configuración de parámetros como la frecuencia, potencia de transmisión, ancho de banda y otros ajustes necesarios para la correcta operación.
+
+De manera similar, el código provee una gran cantidad de utiliarios \textit{wrappers} de librerías de Arduino para la gestión de más recursos de la placa, un claro ejemplo de esto son las librerías \textit{web\_utils.h}, \textit{wx\_utils.h} y \textit{wifi\_utils.h}
 
 \section{Tramas de datos utilizadas}
 
+El tracker utiliza la estructura estándar de paquetes APRS (Automatic Packet Reporting System) para la transmisión y recepción de datos de localización y telemetría. La trama sencilla de un paquete APRS incluye las siguientes secciones:
 
+\small
 
-
-\newpage
+\vspace{0.5em}
+\begin{figure}[h!]
+\begin{tabular}{@{} l l l c l @{}}
+\toprule
+\textbf{Fuente} \textbf{>}& \textbf{Destino} & \textbf{,}\textbf{Camino} & \textbf{:} & \textbf{Información}\\
+\midrule
+N0CALL-9 & APRS & WIDE1-1,WIDE2-1 & : & MENSAJE! \\
+\bottomrule
+\end{tabular}
+\label{fig:trama-aprs}
+\caption{Estructura general de un paquete APRS.}
+\end{figure}
 
 % you can choose not to have a title for an appendix
 % if you want by leaving the argument blank
@@ -296,6 +319,7 @@ Acorde a los avances realizados en el proyecto y los resultados obtenidos, se es
 \begin{itemize}
     \item \textbf{Repositorio oficial de LilyGo:} \url{https://github.com/Xinyuan-LilyGO/LilyGo-LoRa-Series}
     \item \textbf{Repositorio de Ricardo Guzmán LoRa\_APRS\_Tracker:} \url{https://github.com/richonguzman/LoRa_APRS_Tracker}
+    \item \textbf{Repositorio de RadioLib:} \url{https://github.com/jgromes/RadioLib}
 \end{itemize}
 
 

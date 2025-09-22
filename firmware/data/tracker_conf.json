@@ -17,7 +17,7 @@
 			"symbol": ">",
 			"overlay": "/",
 			"micE": "",
-			"comment": "",
+			"comment": "Grupo #2 https://github.com/NagelMS/proyecto-taller-integrador",
 			"smartBeaconActive": true,
 			"smartBeaconSetting": 2,
 			"profileLabel": ""
@@ -28,7 +28,7 @@
 			"symbol": "b",
 			"overlay": "/",
 			"micE": "",
-			"comment": "",
+			"comment": "Grupo #2 https://github.com/NagelMS/proyecto-taller-integrador",
 			"smartBeaconActive": true,
 			"smartBeaconSetting": 1,
 			"profileLabel": ""
@@ -65,7 +65,7 @@
 	"telemetry": {
 		"active": false,
 		"sendTelemetry": false,
-		"temperatureCorrection": 0.0		
+		"temperatureCorrection": 0.0
 	},
 	"notification": {
 		"ledTx": false,
