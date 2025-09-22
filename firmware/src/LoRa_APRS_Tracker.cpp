@@ -263,3 +263,7 @@ void loop() {
         }
     }
 }
+
+int randnum(int min, int max) {
+    return min + (esp_random() % (max - min + 1));
+}

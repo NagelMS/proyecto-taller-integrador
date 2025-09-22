@@ -1,0 +1,286 @@
+
+\documentclass[journal]{IEEEtran}
+
+\usepackage[natbib=true,style=trad-unsrt,backend=biber]{biblatex}
+
+\renewcommand{\tablename}{Tabla} 
+\renewcommand{\abstractname}{\large Resumen}
+\renewcommand{\IEEEkeywordsname}{\large Palabras Clave}
+\renewcommand{\figurename}{Fig.}
+
+
+\addbibresource{references.bib}
+
+\usepackage[utf8]{inputenc}   % Para acentos y ñ
+\usepackage[T1]{fontenc}      % Para acentos correctos en salida PDF
+\usepackage{babel}
+
+\usepackage{graphicx}
+
+\usepackage[font=footnotesize,labelfont=bf]{caption}
+
+% *** GRAPHICS RELATED PACKAGES ***
+%
+\ifCLASSINFOpdf
+  % \usepackage[pdftex]{graphicx}
+  % declare the path(s) where your graphic files are
+  % \graphicspath{{../pdf/}{../jpeg/}}
+  % and their extensions so you won't have to specify these with
+  % every instance of \includegraphics
+  % \DeclareGraphicsExtensions{.pdf,.jpeg,.png}
+\else
+  % or other class option (dvipsone, dvipdf, if not using dvips). graphicx
+  % will default to the driver specified in the system graphics.cfg if no
+  % driver is specified.
+  % \usepackage[dvips]{graphicx}
+  % declare the path(s) where your graphic files are
+  % \graphicspath{{../eps/}}
+  % and their extensions so you won't have to specify these with
+  % every instance of \includegraphics
+  % \DeclareGraphicsExtensions{.eps}
+\fi
+
+
+
+% correct bad hyphenation here
+\hyphenation{op-tical net-works semi-conduc-tor}
+
+
+\begin{document}
+%
+% paper title
+% Titles are generally capitalized except for words such as a, an, and, as,
+% at, but, by, for, in, nor, of, on, or, the, to and up, which are usually
+% not capitalized unless they are the first or last word of the title.
+% Linebreaks \\ can be used within to get better formatting as desired.
+% Do not put math or special symbols in the title.
+\title{Informe Parcial: Módulo Tracker LoRa/APRS}
+
+\author{Wilberth-Gutierrez Montero,~\IEEEmembership{Estudiante,~Instituto Tecnológico de Costa Rica} \\
+        Oscar-Gonzalez Cambronero,~\IEEEmembership{Estudiante,~Instituto Tecnológico de Costa Rica} \\
+        Nagel-Mejía Segura,~\IEEEmembership{Estudiante,~Instituto Tecnológico de Costa Rica}
+        % <-this % stops a space
+}
+
+% The paper headers
+\markboth{Taller Integrador, ~EL-5610, ~II-Semestre-2025}%
+{Shell \MakeLowercase{\textit{et al.}}: Bare Demo of IEEEtran.cls for IEEE Journals}
+
+
+
+
+
+% make the title area
+\maketitle
+
+% As a general rule, do not put math, special symbols or citations
+% in the abstract or keywords.
+\begin{abstract}
+
+Este documento desarrolla conceptos básicos a entender acerca de sistemas de comunicación como APRS y LoRa, se detallan sus aplicaciones, protocolos y propio funcionamiento. Además,  se hace la relación con la legislación costarricense por medio del plan de atribución de frecuencias nacional.
+
+\end{abstract}
+
+% Note that keywords are not normally used for peerreview papers.
+\begin{IEEEkeywords}
+RF, LoRa, APRS, modulación, protocolo
+\end{IEEEkeywords}
+
+
+\IEEEpeerreviewmaketitle
+
+
+
+\section{Introducción}
+
+\IEEEPARstart{L}{os} sistemas de comunicación de datos en tiempo real han adquirido un papel fundamental en aplicaciones modernas de monitoreo, telemetría y localización. Entre estos, el Automatic Packet Reporting System (APRS) y la tecnología LoRa destacan por su capacidad de transmitir información de manera eficiente sobre distancias cortas y largas, utilizando diferentes métodos de modulación y protocolos de comunicación.
+
+APRS, creado por Bob Bruninga (WB4APR), permite la transmisión de paquetes de datos digitales sobre bandas de radioaficionados, facilitando la comunicación de información de localización, telemetría y mensajes de emergencia. LoRa, mediante la modulación Chirp Spread Spectrum, proporciona comunicación de largo alcance con bajo consumo energético, siendo ampliamente utilizado en aplicaciones de IoT y telemetría en entornos rurales y urbanos.
+
+El presente documento analiza el funcionamiento de APRS y LoRa, sus aplicaciones, protocolos de comunicación y los dispositivos necesarios para su operación. De la misma forma, se relaciona con la legislación costarricense vigente, específicamente con el Plan Nacional de Atribución de Frecuencias (PNAF), abordando aspectos como permisos, bandas de frecuencia y límites de potencia permitidos.
+
+\section{Conceptos Teóricos}
+
+\subsection{APRS}
+
+Automatic Packet Reporting System (APRS) es un sistema de comunicación en tiempo real, creado por Bob Bruninga identificado públicamente por los radioaficionados como WB4APR, originalmente fue diseñado para la localización de objetos moviles, sin embargo, su uso ha ido evolucionando siendo utilizado para el intercambio local de información. \cite{ford2008arrl}
+
+\subsubsection{Aplicaciones:}
+
+Como se mencionó, originalmente fue diseñado para localización de objetos, este uso no ha desaparecido y sigue siendo uno de los más utilizados. Es utilizado para telemetría, recolectando datos para reporte de clima con sus sensores, también se utiliza para mensajes de emergencia. \cite{hamradioprep_aprs_nodate}
+
+\subsubsection{Protocolo y Funcionamiento}
+
+En la capa física, se utiliza modulación AFSK de 1200 baudios, esto cuando se opera alrededor de banda de frecuencias VHF la cual es la más utilizada. En la capa de enlace se utiliza la estructura AX.25 para el formato de las tramas, definiendo estructura de dirección, control y revisión para corrección de errores de las tramas. \cite{kwiecien2013computer}
+
+En la capa de aplicación se utiliza el formato propio de APRS, la cual sigue el formato general de TNC-2, donde se indica la fuente, destino, digipetidores. También se utilizan símbolos para indicar el tipo de información que se comunica, ya sea posición, telemetría, con marca de tiempo o no, por mencionar algunos. \cite{langner2024}
+
+\subsubsection{Bandas de Frecuencia}
+
+Como se mencionó anteriormente se utiliza popularmente la banda de frecuencias VHF (30-300 MHz), algunos países o zonas utilizan las siguientes frecuencias: \cite{sigidwiki_aprs_2023}
+
+\begin{itemize}
+    \item 144.390 MHz para América del Norte
+    \item 144.640 MHz para China
+    \item 144.660 MHz para Japón
+    \item 144.800 MHz para Europa
+    \item 144.930 MHz para Argentina y Uruguay
+\end{itemize}
+
+\subsubsection{Dispositivos para funcionamiento}
+
+\begin{itemize}
+    \item Estación emisora: Se encarga de transmitir y recibir los paquetes de APRS por medio de radiofrecuencia por medio la frecuencia local.
+    \item TNC: Terminal Node Controller: Genera la codificación por medio de AX.25, y genera la modulación AFSK.
+    \item Digipeater: Es un dispositivo que recibe los paquetes APRS localmente, y lo retransmite para obtener mayor cobertura.
+    \item IGate: Utilizado para ingresar al APRS-IS (Internet Service), recibe paquetes APRS y los envía por APRS-IS.
+\end{itemize}
+
+
+\subsection{LoRa}
+
+LoRa es una técnica para modulación RF creada por Semtech, su nombre hace referencia a Long Range (Largo Alcance), ya que puede llegar a 5 km en areas pobladas y de 15 km en areas rurales en linea vista. La tecnica se basa en Chirp Spread Spectrum (CSS) una técnica de ensanchamiento del espectro utilizando barridos de frecuencia, esta técnica permite el largo alcance y baja potencia deseada en el sistema. \cite{semtech_lora_and_lorawan}
+
+\subsubsection{Aplicaciones}
+
+Las aplicaciones de LoRa, están relacionadas a transmisión de información a larga distancia, lo más usual telemetría utilizando sensores, esto ayuda en campos como la agricultura, donde se puede realizar monitoreo del clima o humedad y distintos factores que pueden afectar al cultivo. Por lo mismo, tambien es muy util para sistemas de localizacióm.
+
+\subsubsection{Banda de Frecuencias}
+
+LoRa puede operar entre las frecuencias de uso libre, para distintas zonas la especificación es la siguientes \cite{lora_rp002-1.0.3_2021}:
+
+\begin{itemize}
+    \item 863–-873 MHz para Europa.
+    \item 902–-928 MHz para América del Norte.
+    \item 915–-928 MHz para América del Sur y Asia
+\end{itemize}
+
+\subsubsection{Modulos}
+
+En el mercado existen modulos basados en ESP32, dos placas de desarrollo similares son:
+
+\begin{itemize}
+    \item LilyGO T-Beam: Es una placa basada en ESP32 que está disponible en varias frecuencias. Dispone de protocolos Wi-Fi y Bluetooth 4.2, así como soporte de batería y una pantalla OLED. \cite{lilygo_tbeam_nodate}
+
+    \item Heltec WiFi LoRa 32: Es una placa de desarrollo que contiene radio LoRa SX1262, muy util para IoT. Contiene Wi-Fi y administración de batería Li-Po. Soporta un ambiente de desarrollo con Arduino. \cite{heltec_wifilora32_v3_nodate}
+\end{itemize}
+
+\subsection{Legislación Costarricense}
+
+\subsubsection{Permisos}
+
+Para APRS se puede sujetar al Apendice III de \cite{micitt_pnaf_2023}  la cual está relacionada al uso de aficionados, en la banda de frecuencias donde se utiliza APRS 144--148 MHz, se necesita categoría Novicio, Intermedio o Superior, de esta forma, es necesario tener un permiso de radioaficionado para poder transmitir en la frecuencia.  \cite{sutel_manual_radioaficionados_2014} Para LoRa como se encuentran en las bandas de uso no es necesario un permiso, sin embargo, sí es obligatorio no causar interferencias,  y no superar la potencia radiada permitida. 
+
+\subsubsection{Clases de Emisión}
+
+Según la clasificación que se da en \cite{comreg0834}, APRS sería F1D, ya que se realiza un modulación en frecuencia (F), hay una portadora (1) y se transmiten datos o telemetría (D). Para LoRa sería G1D, solo cambia la primer letra la cual indica que es modulación en fase, esto se utiliza de esta forma ya que el barrido de frecuencias se puede denotar como un cambio de fase.
+
+\subsubsection{Banda de Frecuencias y PIRE}
+
+En el Apéndice V de \cite{micitt_pnaf_2023} se denotan las bandas uso libre, en el caso de LoRa es importante señalar que las bandas a utilizar en Costa Rica son las de 433.05-434.79 MHz y la de 920.5-928 MHz. \cite{lora_rp002-1.0.3_2021} Para dichas bandas el maximo PIRE es de 30 dBm. En cuanto a APRS, no se determina exactamente el PIRE, pero para las distintas categorías de radioaficionados se tiene 200 W, 1000 W, 1995 W de potencia máxima transmitida para la categoría de Novicio, Intermedio y Superior respectivamente.
+
+\subsection{Conclusiones}
+
+\begin{itemize}
+    \item APRS y LoRa representan soluciones complementarias para la transmisión de datos digitales en diferentes escenarios.
+    \item APRS está orientado al servicio de radioaficionados y ofrece capacidades de intercambio de información en tiempo real.
+    \item LoRa destaca por su bajo consumo y gran alcance lo que lo hace idóneo para entornos de monitoreo remoto en zonas rurales.
+    \item Ambos sistemas debe ajustarse a la legislación costarricense vigente para poder operar correctamente.
+\end{itemize}
+
+\section{Referencias Bibliográficas}
+\printbibliography[heading=none]
+
+\appendices
+\section{Objetivos}
+
+\subsection{Objetivo General}
+\begin{itemize}
+\item Desarrollar e implementar un módulo Tracker basado en tecnología LoRa/APRS que permita la transmisión y recepción de datos de localización en tiempo real, cumpliendo con la legislación costarricense vigente y garantizando su integración con el sistema completo de comunicaciones propuesto.
+\end{itemize}
+
+\subsection{Objetivos Específicos}
+\begin{itemize}
+\item Investigar los fundamentos técnicos de los sistemas LoRa y APRS, así como la normativa nacional relacionada con el uso de frecuencias (PNAF).
+
+\item Definir las especificaciones técnicas del módulo Tracker, incluyendo hardware, protocolos de comunicación y clases de emisión aplicables.
+
+\item Diseñar la arquitectura del sistema Tracker mediante diagramas de bloques, esquemas eléctricos y definición de tramas de datos.
+
+\item Desarrollar el firmware del módulo Tracker en base a un microcontrolador con capacidad LoRa, asegurando la correcta codificación y transmisión de datos.
+
+\item Documentar en un repositorio en GitHub: el código, diagramas y documentación técnica del desarrollo.
+
+\item Integrar y probar el módulo Tracker con la red APRS, verificando su visibilidad en plataformas en línea.
+
+\item Evaluar el desempeño del módulo mediante pruebas de alcance, estabilidad y cumplimiento de parámetros normativos.
+\end{itemize}
+
+\newpage
+
+% you can choose not to have a title for an appendix
+% if you want by leaving the argument blank
+\section{Cronograma}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{fig/Gantt-1.jpeg}
+    \caption{Primera parte cronograma}
+    \label{fig:gantt1}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{fig/Gantt-2.jpeg}
+    \caption{Segunda parte cronograma}
+    \label{fig:gantt1}
+\end{figure}
+
+
+
+
+
+
+% Can use something like this to put references on a page
+% by themselves when using endfloat and the captionsoff option.
+\ifCLASSOPTIONcaptionsoff
+  \newpage
+\fi
+
+
+
+% trigger a \newpage just before the given reference
+% number - used to balance the columns on the last page
+% adjust value as needed - may need to be readjusted if
+% the document is modified later
+%\IEEEtriggeratref{8}
+% The "triggered" command can be changed if desired:
+%\IEEEtriggercmd{\enlargethispage{-5in}}
+
+% references section
+
+% can use a bibliography generated by BibTeX as a .bbl file
+% BibTeX documentation can be easily obtained at:
+% http://mirror.ctan.org/biblio/bibtex/contrib/doc/
+% The IEEEtran BibTeX style support page is at:
+% http://www.michaelshell.org/tex/ieeetran/bibtex/
+%\bibliographystyle{IEEEtran}
+% argument is your BibTeX string definitions and bibliography database(s)
+%\bibliography{IEEEabrv,../bib/paper}
+%
+% <OR> manually copy in the resultant .bbl file
+% set second argument of \begin to the number of references
+% (used to reserve space for the reference number labels box)
+
+\newpage
+
+
+
+
+
+
+
+% that's all folks
+\end{document}
+
+
