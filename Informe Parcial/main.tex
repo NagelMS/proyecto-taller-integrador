@@ -166,11 +166,80 @@ La propuesta busca resolver un problema común en fincas medianas y grandes, loc
 
 Desde la experiencia del usuario el flujo es directo: el collar toma lecturas periódicas de posición, un microcontrolador local las valida y empaqueta, y el radio envía los datos hacia un gateway ubicado en la propiedad o en un sitio elevado. El gateway recibe, decodifica y reenvía al servidor, donde se almacenan y muestran en un mapa con historiales y zonas de actividad.
 
-El diseño contempla situaciones límite que pueden afectar la operación: pérdida de energía por batería descargada; lecturas GNSS degradadas por vegetación densa o cañones; clima adverso (lluvia, barro, polvo, altas temperaturas) que exige carcasas selladas (con antena expuesta); y degradación del enlace LoRa por distancia o interferencias. Para mitigar, el sistema reintenta envíos y mantiene colas locales para subidas diferidas cuando vuelve la cobertura, es responsabilidad del usuario el control de energía de cada dispositivo.
+El diseño contempla situaciones límite que pueden afectar la operación: pérdida de energía por batería descargada; lecturas degradadas por vegetación densa o cañones; clima adverso (lluvia, barro, polvo, altas temperaturas) que exige carcasas selladas (con antena expuesta); y degradación del enlace LoRa por distancia o interferencias. Para mitigar, el sistema reintenta envíos y mantiene colas locales para subidas diferidas cuando vuelve la cobertura, es responsabilidad del usuario el control de energía de cada dispositivo.
 
-En su versión final, el producto se visualiza como una red de collares autónomos distribuidos en el terreno, con un microcontrolador de muy bajo consumo, radio LoRa y una posible carga solar para aumentar la autonomía del dispositivo, todo en una carcasa IP resistente. La estación central un gateway con conexión a internet o con sincronización periódica concentra la información y ofrece una interfaz para monitoreo en tiempo real, búsqueda rápida, análisis de hábitos y rutas, y gestión de grupos. Con esto se mejora la seguridad (detección temprana de escapes o robo de animales), se ahorra tiempo en localización, y se obtiene inteligencia práctica para la administración de potreros.
+En su versión final, el producto se visualiza como una red de collares autónomos distribuidos en el terreno, con un microcontrolador de muy bajo consumo, radio LoRa y una posible carga solar para aumentar la autonomía del dispositivo, todo en una carcasa IP resistente. La estación central un gateway con conexión a internet o con sincronización periódica concentra la información y ofrece una interfaz para monitoreo en tiempo real, búsqueda rápida, análisis de hábitos y rutas, y gestión de grupos. Con esto se mejora la seguridad (detección temprana de escapes o robo de animales), se ahorra tiempo en localización, y se obtiene inteligencia práctica para la administración de potreros. En la Fig \ref{fig:collar.png} se muestra un posible diseño como aplicación final del proyecto.
+
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{fig/collar.png}
+    \caption{Propuesta de diseño de la aplicación del proyecto}
+    \label{fig:collar.png}
+\end{figure}
+
+\section{Diseño modular}
+
+El diagrama de primer nivel expone la motivación del proyecto. El problema a resolver es el monitoreo y la localización del ganado, es decir, conocer la posición de cada animal y su dinámica de movimiento, junto con la necesidad de conexión en zonas remotas donde no siempre hay cobertura celular. La solución propuesta es un esquema de monitoreo mediante LoRa y APRS. El dispositivo obtiene posición y estado, los empaqueta en tramas ligeras y los transmite por radio a larga distancia. A partir de este proceso se obtienen dos salidas: datos de posición geográfica (ubicación actual de cada animal) e información histórica (trayectorias, permanencias, entradas y salidas de geocercas, e inactividad). Estos datos permiten alcanzar el resultado buscado: mejora en el control de grupos, habilitando decisiones de manejo como reunir, mover, o detectar fuga y rezago.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\linewidth]{fig/primer_nivel.png}
+    \caption{Diagrama de primer nivel del sistema}
+    \label{fig:primer_nivel}
+\end{figure}
+
+El diagrama de segundo nivel describe los roles del sistema y el flujo de información.
+
+\begin{itemize}
+    \item \textbf{Solución: Monitoreo LoRa y APRS.} Representa el conjunto collar y radio, que toma mediciones locales (posición, batería, movimiento) y emite tramas por el enlace LoRa/APRS.
+    \item \textbf{GPS.} Módulo que entrega datos de posición geográfica al dispositivo. El tracker lee estas tramas (NMEA o binario) y decide si reporta de inmediato o conserva la información hasta el siguiente intervalo.
+    \item \textbf{Gateway central.} Equipo fijo que recibe las tramas por radio, las decodifica (parámetros de radio y formato del \emph{payload}) y publica eventos hacia el \emph{backend}. La flecha de solicitud de datos indica que desde el \emph{backend} se pueden enviar \emph{downlinks} (por ejemplo, cambio de intervalo o habilitación de búsqueda) que el gateway reinyecta al aire.
+    \item \textbf{Interfaz del usuario.} Panel web o aplicación que recibe datos procesados (posiciones ya interpretadas con reglas de negocio) y puede originar peticiones o comandos de configuración que regresan al gateway como \emph{downlinks}.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\linewidth]{fig/segundo_nivel.png}
+    \caption{Diagrama de segundo nivel del sistema}
+    \label{fig:segundo_nivel}
+\end{figure}
+
+El diagrama de tercer nivel elimina la caja negra y muestra componentes internos y su interacción.
+
+\begin{itemize}
+    \item \textbf{GPS a Microcontrolador.} El receptor entrega posición, tiempo y calidad del \emph{fix}. El microcontrolador (por ejemplo, ESP32/T-Beam) filtra y valida: si el \emph{fix} es válido y coincide con una ventana de reporte, empaqueta la ubicación.
+    \item \textbf{PMIC a Microcontrolador (energía) y Microcontrolador a PMIC (control).} El PMIC suministra 3{,}3~V y gestiona batería y carga. A su vez, el microcontrolador ordena encender o apagar rieles (GNSS y radio) para ahorrar energía, implementando el ciclo dormir–despertar–medir–enviar.
+    \item \textbf{Microcontrolador a Módulo LoRa.} El microcontrolador envía el dato procesado (payload compacto) por SPI al transceptor. El radio modula y transmite por la antena. Cuando corresponde, abre ventanas de recepción para \emph{downlinks}.
+    \item \textbf{Módulo LoRa a Gateway central.} El gateway recibe la trama aérea y la entrega al servidor de red, donde se decodifica (llaves, puerto y esquema del \emph{payload}) y se normaliza.
+    \item \textbf{Gateway central a Base de datos.} Una vez decodificados, los datos se almacenan (latitud, longitud, batería, RSSI/SNR y marcas de tiempo). Con estos registros se calculan métricas e historiales.
+    \item \textbf{Base de datos a Interfaz de usuario.} La aplicación consulta y muestra capas útiles: mapa en vivo, geocercas, alertas (salida de potrero e inactividad), estado de batería y cobertura. Desde la interfaz también se generan órdenes que regresan como \emph{downlinks} al dispositivo (correspondientes a la solicitud de datos del nivel 2).
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\linewidth]{fig/tercer_nivel.png}
+    \caption{Diagrama de tercer nivel del sistema}
+    \label{fig:tercer_nivel}
+\end{figure}
+
 
 \section{Diagrama eléctrico}
+
+Para el sistema utilizado se presenta el diagrama eléctrico de la tarjeta de desarrollo del tracker, el ESP32 del LilyGo's T-Beam ESP32 LoRa 433MHz SX1276 \cite{tbeam_v12_schematic}. El ESP32 gobierna la radio LoRa mediante el bus SPI y líneas adicionales de control. El SPI suministra reloj, datos y selección de chip al transceptor, mientras un par de GPIO se asignan a las interrupciones del radio y a la señal de reinicio. Esta arquitectura permite operar el firmware en Clase A: el radio permanece en reposo la mayor parte del tiempo, se activa para transmitir la trama de posición y vuelve al modo de bajo consumo cuando finalizan las ventanas de recepción. El enlace de RF sale de la placa a través de un conector de antena y una pista de 50 ohm, lo que permite ubicar la antena en el exterior de la caja roja del collar para maximizar la cobertura en campo.
+
+El GNSS se conecta al ESP32 por un puerto UART dedicado. El par TX/RX se utiliza para configurar el receptor y para leer tramas NMEA o formato binario, y se puede emplear la salida de pulso por segundo para estampar tiempo con precisión cuando sea necesario. La alimentación del GNSS se gestiona desde el microcontrolador mediante una línea de habilitación o un riel conmutable del gestor de energía, de modo que el receptor permanezca apagado entre mediciones y solo se energice durante una ventana breve para obtener el arreglo y conservar efemérides, con la consiguiente reducción del tiempo a primer arreglo y del consumo total.
+
+La alimentación del T-Beam parte de una celda de ion litio o polímero de litio y entra a un PMIC con cargador integrado. Este gestor entrega un riel principal a 3,3 V para el ESP32 y, según el diseño de la placa, rieles conmutables para el módulo LoRa y el GNSS. Desde la perspectiva del diagrama, el microcontrolador controla estos rieles mediante pines de habilitación, lo que proporciona un control de energía a nivel de hardware y posibilita autonomías prolongadas en campo. El puerto USB con su convertidor USB a UART se reserva para programación y diagnóstico en taller, y el mismo conector alimenta al PMIC para la recarga de la batería antes de sellar la caja.
+
+Finalmente, conviene destacar dos aspectos eléctricos clave para esta aplicación rural: la ruta de RF hasta el conector de antena, incluida la red de adaptación, ya que la antena se instalará en el exterior o en una zona del encapsulado con buena transparencia electromagnética, y la separación lógica de buses, con SPI para la radio, UART para el GNSS e I²C para sensores auxiliares como la IMU o el medidor de batería. 
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\linewidth]{fig/electrico.png}
+    \caption{Diagrama eléctrico interno del ESP32 \cite{tbeam_v12_schematic}}
+    \label{fig:electrico}
+\end{figure}
 
 \section{Tipo de comunicación de periféricos}
 
@@ -341,14 +410,14 @@ Acorde a los avances realizados en el proyecto y los resultados obtenidos, se es
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=1\linewidth]{fig/Gantt-1.jpeg}
+    \includegraphics[width=0.95\linewidth]{fig/Gantt-1.jpeg}
     \caption{Primera Parte del Cronograma}
     \label{fig:gantt1}
 \end{figure}
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=1\linewidth]{fig/Gantt-2.jpeg}
+    \includegraphics[width=0.95\linewidth]{fig/Gantt-2.jpeg}
     \caption{Segunda Parte del Cronograma}
     \label{fig:gantt2}
 \end{figure}
