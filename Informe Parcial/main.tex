@@ -102,6 +102,86 @@ Trama, modulación, registros, potencia.
 
 \IEEEPARstart{P}{}ara desarrollar un \textit{tracker} capaz de transmitir y recibir datos de localización con múltiples protocolos de comunicación, es necesario integrar diversos componentes electrónicos y módulos de comunicación que permitan la adquisición, procesamiento y transmisión de datos. El proyecto se basa en la utilización de una placa de desarrollo \textit{LilyGo TTGO T-Beam v1.2}, la cual tiene integrados múltiples componentes esenciales para la funcionalidad del sistema, que requieren \textit{firmware} adecuado para la arbitración de tareas, administración de potencia y otras características propias de la aplicación, por lo que se necesita que existan interfaces y pautas definidas para que cada subsistema pueda comunicarse de manera efectiva. A continuación, se describen los diagramas del sistema, los sensores, dispositivos y procesador a utilizar, el diseño de la solución, diagrama eléctrico, tipo de comunicación de periféricos, pseudo-código del sistema y las tramas de datos utilizadas para lograr comunicar la posición del \textit{tracker} a una página web en tiempo real de manera eficiente.
 
+\section{Conceptos Teóricos}
+
+\subsection{APRS}
+
+Automatic Packet Reporting System (APRS) es un sistema de comunicación en tiempo real, creado por Bob Bruninga identificado públicamente por los radioaficionados como WB4APR, originalmente fue diseñado para la localización de objetos moviles, sin embargo, su uso ha ido evolucionando siendo utilizado para el intercambio local de información. \cite{ford2008arrl}
+
+\subsubsection{Aplicaciones:}
+
+Como se mencionó, originalmente fue diseñado para localización de objetos, este uso no ha desaparecido y sigue siendo uno de los más utilizados. Es utilizado para telemetría, recolectando datos para reporte de clima con sus sensores, también se utiliza para mensajes de emergencia. \cite{hamradioprep_aprs_nodate}
+
+\subsubsection{Protocolo y Funcionamiento}
+
+En la capa física, se utiliza modulación AFSK de 1200 baudios, esto cuando se opera alrededor de banda de frecuencias VHF la cual es la más utilizada. En la capa de enlace se utiliza la estructura AX.25 para el formato de las tramas, definiendo estructura de dirección, control y revisión para corrección de errores de las tramas. \cite{kwiecien2013computer}
+
+En la capa de aplicación se utiliza el formato propio de APRS, la cual sigue el formato general de TNC-2, donde se indica la fuente, destino, digipetidores. También se utilizan símbolos para indicar el tipo de información que se comunica, ya sea posición, telemetría, con marca de tiempo o no, por mencionar algunos. \cite{langner2024}
+
+\subsubsection{Bandas de Frecuencia}
+
+Como se mencionó anteriormente se utiliza popularmente la banda de frecuencias VHF (30-300 MHz), algunos países o zonas utilizan las siguientes frecuencias: \cite{sigidwiki_aprs_2023}
+
+\begin{itemize}
+    \item 144.390 MHz para América del Norte
+    \item 144.640 MHz para China
+    \item 144.660 MHz para Japón
+    \item 144.800 MHz para Europa
+    \item 144.930 MHz para Argentina y Uruguay
+\end{itemize}
+
+\subsubsection{Dispositivos para funcionamiento}
+
+\begin{itemize}
+    \item Estación emisora: Se encarga de transmitir y recibir los paquetes de APRS por medio de radiofrecuencia por medio la frecuencia local.
+    \item TNC: Terminal Node Controller: Genera la codificación por medio de AX.25, y genera la modulación AFSK.
+    \item Digipeater: Es un dispositivo que recibe los paquetes APRS localmente, y lo retransmite para obtener mayor cobertura.
+    \item IGate: Utilizado para ingresar al APRS-IS (Internet Service), recibe paquetes APRS y los envía por APRS-IS.
+\end{itemize}
+
+
+\subsection{LoRa}
+
+LoRa es una técnica para modulación RF creada por Semtech, su nombre hace referencia a Long Range (Largo Alcance), ya que puede llegar a 5 km en areas pobladas y de 15 km en areas rurales en linea vista. La tecnica se basa en Chirp Spread Spectrum (CSS) una técnica de ensanchamiento del espectro utilizando barridos de frecuencia, esta técnica permite el largo alcance y baja potencia deseada en el sistema. \cite{semtech_lora_and_lorawan}
+
+\subsubsection{Aplicaciones}
+
+Las aplicaciones de LoRa, están relacionadas a transmisión de información a larga distancia, lo más usual telemetría utilizando sensores, esto ayuda en campos como la agricultura, donde se puede realizar monitoreo del clima o humedad y distintos factores que pueden afectar al cultivo. Por lo mismo, tambien es muy util para sistemas de localizacióm.
+
+\subsubsection{Banda de Frecuencias}
+
+LoRa puede operar entre las frecuencias de uso libre, para distintas zonas la especificación es la siguientes \cite{lora_rp002-1.0.3_2021}:
+
+\begin{itemize}
+    \item 863–-873 MHz para Europa.
+    \item 902–-928 MHz para América del Norte.
+    \item 915–-928 MHz para América del Sur y Asia
+\end{itemize}
+
+\subsubsection{Modulos}
+
+En el mercado existen modulos basados en ESP32, dos placas de desarrollo similares son:
+
+\begin{itemize}
+    \item LilyGO T-Beam: Es una placa basada en ESP32 que está disponible en varias frecuencias. Dispone de protocolos Wi-Fi y Bluetooth 4.2, así como soporte de batería y una pantalla OLED. \cite{lilygo_tbeam_nodate}
+
+    \item Heltec WiFi LoRa 32: Es una placa de desarrollo que contiene radio LoRa SX1262, muy util para IoT. Contiene Wi-Fi y administración de batería Li-Po. Soporta un ambiente de desarrollo con Arduino. \cite{heltec_wifilora32_v3_nodate}
+\end{itemize}
+
+\subsection{Legislación Costarricense}
+
+\subsubsection{Permisos}
+
+Para APRS se puede sujetar al Apendice III de \cite{micitt_pnaf_2023}  la cual está relacionada al uso de aficionados, en la banda de frecuencias donde se utiliza APRS 144--148 MHz, se necesita categoría Novicio, Intermedio o Superior, de esta forma, es necesario tener un permiso de radioaficionado para poder transmitir en la frecuencia.  \cite{sutel_manual_radioaficionados_2014} Para LoRa como se encuentran en las bandas de uso no es necesario un permiso, sin embargo, sí es obligatorio no causar interferencias,  y no superar la potencia radiada permitida. 
+
+\subsubsection{Clases de Emisión}
+
+Según la clasificación que se da en \cite{comreg0834}, APRS sería F1D, ya que se realiza un modulación en frecuencia (F), hay una portadora (1) y se transmiten datos o telemetría (D). Para LoRa sería G1D, solo cambia la primer letra la cual indica que es modulación en fase, esto se utiliza de esta forma ya que el barrido de frecuencias se puede denotar como un cambio de fase.
+
+\subsubsection{Banda de Frecuencias y PIRE}
+
+En el Apéndice V de \cite{micitt_pnaf_2023} se denotan las bandas uso libre, en el caso de LoRa es importante señalar que las bandas a utilizar en Costa Rica son las de 433.05-434.79 MHz y la de 920.5-928 MHz. \cite{lora_rp002-1.0.3_2021} Para dichas bandas el maximo PIRE es de 30 dBm. En cuanto a APRS, no se determina exactamente el PIRE, pero para las distintas categorías de radioaficionados se tiene 200 W, 1000 W, 1995 W de potencia máxima transmitida para la categoría de Novicio, Intermedio y Superior respectivamente.
+
 \section{Sensores, dispositivos y procesador a utilizar}
 
 El módulo \textit{LilyGo TTGO T-Beam v1.2} es una plataforma de desarrollo basada en el microcontrolador ESP32-DOWDQ6, que integra el transceptor LoRa SX1278, receptor GPS NEO-6M/M8N, un circuito integrado para administración de potencia AXP2101, una pantalla OLED SSD1306 128x64 y un convertidor USB a UART CP2104, permitiéndole así interconectar y gestionar múltiples periféricos para monitorización y envío de datos. Aunque la placa de desarrollo cuente con otros circuitos integrados y funcionalidades, los que se encuentran en uso para el desarrollo del proyecto son los mencionados anteriormente. En una descripción de bajo nivel, el \textit{SOC} principal ESP32-DOWDQ6 cuenta con diversos protocolos de comunicación estándar que le permiten comincarse con las interfaces del resto de módulos, los cuales cuentan con registros de almacenamiento de datos de telemetría y configuración. El \textit{SOC} principal es el encargado de la arbitración de las transacciones de \textit{LoRa}, empaquetado de datos, cálculos, administración de energía en los módulos periféricos, actualización de la pantalla OLED y demás tareas necesarias para el correcto funcionamiento del sistema. A continuación, se presenta un diagrama de bloques que ilustra la interconexión entre el microcontrolador ESP32-DOWDQ6 y los periféricos mencionados:
