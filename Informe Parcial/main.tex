@@ -100,7 +100,7 @@ Trama, modulación, registros, potencia.
 
 \section{Introducción}
 
-\IEEEPARstart{P}{}ara desarrollar un \textit{tracker} capaz de transmitir y recibir datos de localización con múltiples protocolos de comunicación, es necesario integrar diversos componentes electrónicos y módulos de comunicación que permitan la adquisición, procesamiento y transmisión de datos. El proyecto se basa en la utilización de una placa de desarrollo \textit{LilyGo TTGO T-Beam v1.2}, la cual tiene integrados múltiples componentes esenciales para la funcionalidad del sistema, que requieren \textit{firmware} adecuado para la arbitración de tareas, administración de potencia y otras características propias de la aplicación, por lo que se neceista que existan interfaces y pautas definidas para que cada subsistema pueda comunicarse de manera efectiva. A continuación, se describen los sensores, dispositivos y procesador a utilizar, el diseño de la solución, diagrama eléctrico, tipo de comunicación de periféricos, pseudo-código del sistema y las tramas de datos utilizadas para lograr comunicar la posición del \textit{tracker} a una página web en tiempo real de manera eficiente.
+\IEEEPARstart{P}{}ara desarrollar un \textit{tracker} capaz de transmitir y recibir datos de localización con múltiples protocolos de comunicación, es necesario integrar diversos componentes electrónicos y módulos de comunicación que permitan la adquisición, procesamiento y transmisión de datos. El proyecto se basa en la utilización de una placa de desarrollo \textit{LilyGo TTGO T-Beam v1.2}, la cual tiene integrados múltiples componentes esenciales para la funcionalidad del sistema, que requieren \textit{firmware} adecuado para la arbitración de tareas, administración de potencia y otras características propias de la aplicación, por lo que se necesita que existan interfaces y pautas definidas para que cada subsistema pueda comunicarse de manera efectiva. A continuación, se describen los diagramas del sistema, los sensores, dispositivos y procesador a utilizar, el diseño de la solución, diagrama eléctrico, tipo de comunicación de periféricos, pseudo-código del sistema y las tramas de datos utilizadas para lograr comunicar la posición del \textit{tracker} a una página web en tiempo real de manera eficiente.
 
 \section{Sensores, dispositivos y procesador a utilizar}
 
@@ -161,6 +161,14 @@ El módulo \textit{LilyGo TTGO T-Beam v1.2} es una plataforma de desarrollo basa
 \end{figure}
 
 \section{Diseño de la solución}
+
+La propuesta busca resolver un problema común en fincas medianas y grandes, localizar animales de granja y animales domésticos. Para ello, se plantea colocar collares no invasivos a los animales, que contengan un dispositivo con una carcasa protectora contra factores mecánicos y ambientales, para que transmitan información de localización de manera inalámbrica hacia una estación central. La comunicación se realiza con enlaces de largo alcance mediante LoRa, encapsulando los datos con el protocolo APRS, lo que permite cubrir áreas grandes con bajo consumo.
+
+Desde la experiencia del usuario el flujo es directo: el collar toma lecturas periódicas de posición, un microcontrolador local las valida y empaqueta, y el radio envía los datos hacia un gateway ubicado en la propiedad o en un sitio elevado. El gateway recibe, decodifica y reenvía al servidor, donde se almacenan y muestran en un mapa con historiales y zonas de actividad.
+
+El diseño contempla situaciones límite que pueden afectar la operación: pérdida de energía por batería descargada; lecturas GNSS degradadas por vegetación densa o cañones; clima adverso (lluvia, barro, polvo, altas temperaturas) que exige carcasas selladas (con antena expuesta); y degradación del enlace LoRa por distancia o interferencias. Para mitigar, el sistema reintenta envíos y mantiene colas locales para subidas diferidas cuando vuelve la cobertura, es responsabilidad del usuario el control de energía de cada dispositivo.
+
+En su versión final, el producto se visualiza como una red de collares autónomos distribuidos en el terreno, con un microcontrolador de muy bajo consumo, radio LoRa y una posible carga solar para aumentar la autonomía del dispositivo, todo en una carcasa IP resistente. La estación central un gateway con conexión a internet o con sincronización periódica concentra la información y ofrece una interfaz para monitoreo en tiempo real, búsqueda rápida, análisis de hábitos y rutas, y gestión de grupos. Con esto se mejora la seguridad (detección temprana de escapes o robo de animales), se ahorra tiempo en localización, y se obtiene inteligencia práctica para la administración de potreros.
 
 \section{Diagrama eléctrico}
 
@@ -315,6 +323,18 @@ TI2JR-10>APLRG1,WIDE1-1:!LIJgp9;"M  GLoRa APRS \\
 % you can choose not to have a title for an appendix
 % if you want by leaving the argument blank
 \vspace{1cm}
+
+\section{Presupuesto}
+
+A continuación se muestra la tabla del presupuesto del proyecto, nótese que es necesario, además del módulo y su alimentación mediante una batería de Li-Ion, un collar ajustable para poner al animal, así como un protector para contener el módulo y evitar fallos por factores mecánicos y ambientales. Para un producto, se necesita una única unidad de cada elemento para su producción.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{fig/presupuesto.png}
+    \caption{Presupuesto de la aplicación del proyecto}
+    \label{fig:presupuesto.png}
+\end{figure}
+
 \section{Cronograma}
 
 Acorde a los avances realizados en el proyecto y los resultados obtenidos, se están cumpliendo los tiempos establecidos, por lo que se plantea continuar con el cronograma propuesto inicialmente. A continuación, se presenta el cronograma detallado de las actividades planificadas para la culminación del proyecto:
@@ -339,6 +359,8 @@ Acorde a los avances realizados en el proyecto y los resultados obtenidos, se es
     \item \textbf{Repositorio oficial de LilyGo:} \url{https://github.com/Xinyuan-LilyGO/LilyGo-LoRa-Series}
     \item \textbf{Repositorio de Ricardo Guzmán LoRa\_APRS\_Tracker:} \url{https://github.com/richonguzman/LoRa_APRS_Tracker}
     \item \textbf{Repositorio de RadioLib:} \url{https://github.com/jgromes/RadioLib}
+
+    \item \textbf{Repositorio del proyecto:} \url{https://github.com/NagelMS/proyecto-taller-integrador.git}
 \end{itemize}
 
 
