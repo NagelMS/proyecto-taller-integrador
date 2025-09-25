@@ -1,9 +1,8 @@
 .pio
 .vscode
 
-
 # LaTeX byproducts
-
+*.bbl
 *.aux
 *.bbl
 *.bcf
