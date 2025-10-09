@@ -6,7 +6,7 @@
 			"symbol": "p",
 			"overlay": "/",
 			"micE": "",
-			"comment": "Grupo #2 https://github.com/NagelMS/proyecto-taller-integrador",
+			"comment": "Escuela de Ingenieria Electronica-ITCR",
 			"smartBeaconActive": true,
 			"smartBeaconSetting": 0,
 			"profileLabel": ""
@@ -17,7 +17,7 @@
 			"symbol": ">",
 			"overlay": "/",
 			"micE": "",
-			"comment": "Grupo #2 https://github.com/NagelMS/proyecto-taller-integrador",
+			"comment": "Escuela de Ingenieria Electronica-ITCR",
 			"smartBeaconActive": true,
 			"smartBeaconSetting": 2,
 			"profileLabel": ""
@@ -28,7 +28,7 @@
 			"symbol": "b",
 			"overlay": "/",
 			"micE": "",
-			"comment": "Grupo #2 https://github.com/NagelMS/proyecto-taller-integrador",
+			"comment": "Escuela de Ingenieria Electronica-ITCR",
 			"smartBeaconActive": true,
 			"smartBeaconSetting": 1,
 			"profileLabel": ""
@@ -41,8 +41,8 @@
 		"turn180" : false
     },
 	"battery": {
-		"sendVoltage": false,
-		"voltageAsTelemetry": false,
+		"sendVoltage": true,
+		"voltageAsTelemetry": true,
 		"sendVoltageAlways": false,
 		"monitorVoltage": false,
 		"sleepVoltage": 2.9
@@ -53,7 +53,7 @@
 		"path": "WIDE1-1",
 		"nonSmartBeaconRate": 15,
 		"rememberStationTime": 30,
-		"standingUpdateTime": 15,
+		"standingUpdateTime": 5,
 		"sendAltitude": true,
 		"disableGPS": false,
 		"acceptOwnFrameFromTNC": false,
