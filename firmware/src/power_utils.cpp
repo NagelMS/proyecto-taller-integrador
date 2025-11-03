@@ -1,21 +1,3 @@
-/* Copyright (C) 2025 Ricardo Guzman - CA2RXU
- * 
- * This file is part of LoRa APRS Tracker.
- * 
- * LoRa APRS Tracker is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or 
- * (at your option) any later version.
- * 
- * LoRa APRS Tracker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with LoRa APRS Tracker. If not, see <https://www.gnu.org/licenses/>.
- */
-
 #include <SPI.h>
 #include "notification_utils.h"
 #include "configuration.h"
@@ -27,6 +9,10 @@
 #include "gps_utils.h"
 #include "display.h"
 #include "logger.h"
+
+// -----------------------------------------------------------------------------
+// Gestión de energía: PMU, GPS, LoRa, periféricos y apagado seguro
+// -----------------------------------------------------------------------------
 
 
 #if !defined(TTGO_T_Beam_S3_SUPREME_V3) && !defined(HELTEC_WIRELESS_TRACKER)
@@ -154,7 +140,7 @@ namespace POWER_Utils {
         #endif
     }  
 
-    void activateGPS() {
+    void activateGPS() { // Alimenta y habilita el módulo GPS según PMU/placa {
         #ifdef HAS_AXP192
             PMU.setLDO3Voltage(3300);
             PMU.enableLDO3();
@@ -175,7 +161,7 @@ namespace POWER_Utils {
         gpsIsActive = true;
     }
 
-    void deactivateGPS() {
+    void deactivateGPS() { // Corta energía al GPS para ahorro {
         #ifdef HAS_AXP192
             PMU.disableLDO3();
         #endif
@@ -193,7 +179,7 @@ namespace POWER_Utils {
         gpsIsActive = false;
     }
 
-    void activateLoRa() {
+    void activateLoRa() { // Alimenta módulo LoRa {
         #ifdef HAS_AXP192
             PMU.setLDO2Voltage(3300);
             PMU.enableLDO2();
@@ -210,7 +196,7 @@ namespace POWER_Utils {
         #endif
     }
 
-    void deactivateLoRa() {
+    void deactivateLoRa() { // Desactiva módulo LoRa {
         #ifdef HAS_AXP192
             PMU.disableLDO2();
         #endif
@@ -224,7 +210,7 @@ namespace POWER_Utils {
         #endif
     }
 
-    void externalPinSetup() {
+    void externalPinSetup() { // Configura pines externos: buzzer, LEDs y PTT {
         if (Config.notification.buzzerActive && Config.notification.buzzerPinTone >= 0 && Config.notification.buzzerPinVcc >= 0) {
             pinMode(Config.notification.buzzerPinTone, OUTPUT);
             pinMode(Config.notification.buzzerPinVcc, OUTPUT);
@@ -264,7 +250,7 @@ namespace POWER_Utils {
         }
     }
 
-    bool begin(TwoWire &port) {
+    bool begin(TwoWire &port) { // Inicializa PMU (AXP192/AXP2101) y ajusta tensiones/IRQ {
         #if !defined(HAS_AXP192) && !defined(HAS_AXP2101)
             return true; // no powerManagment chip for this boards (only a few measure battery voltage).
         #endif
@@ -315,7 +301,7 @@ namespace POWER_Utils {
         #endif
     }
 
-    void setup() {
+    void setup() { // Configura fuentes, mide batería, inicializa buses y periféricos {
         #ifdef HAS_NO_GPS
             disableGPS = true;
         #else
@@ -413,7 +399,7 @@ namespace POWER_Utils {
         #endif
     }
 
-    void lowerCpuFrequency() {
+    void lowerCpuFrequency() { // Reduce frecuencia CPU a 80 MHz para ahorro {
         if (setCpuFrequencyMhz(80)) {
             logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, "Main", "CPU frequency set to 80MHz");
         } else {
@@ -421,7 +407,7 @@ namespace POWER_Utils {
         }
     }
 
-    void shutdown() {
+    void shutdown() { // Secuencia de apagado completo: beeps, corte de energía y deep-sleep {
         delay(3000);
         logger.log(logging::LoggerLevel::LOGGER_LEVEL_WARN, "Main", "SHUTDOWN !!!");
         #if defined(HAS_AXP192) || defined(HAS_AXP2101)

@@ -1,24 +1,10 @@
-/* Copyright (C) 2025 Ricardo Guzman - CA2RXU
- * 
- * This file is part of LoRa APRS Tracker.
- * 
- * LoRa APRS Tracker is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or 
- * (at your option) any later version.
- * 
- * LoRa APRS Tracker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with LoRa APRS Tracker. If not, see <https://www.gnu.org/licenses/>.
- */
-
 #include "smartbeacon_utils.h"
 #include "configuration.h"
 #include "winlink_utils.h"
+
+// -----------------------------------------------------------------------------
+// SmartBeacon: cálculo de intervalo y estado
+// -----------------------------------------------------------------------------
 
 extern Configuration    Config;
 extern Beacon           *currentBeacon;
@@ -44,34 +30,34 @@ SmartBeaconValues   smartBeaconSettings[3] = {
 
 namespace SMARTBEACON_Utils {
 
-    void checkSettings(byte index) {
+    void checkSettings(byte index) { // Aplica un perfil (runner/bike/car) si cambia el índice
         if (smartBeaconSettingsIndex != index) {
             currentSmartBeaconValues = smartBeaconSettings[index];
             smartBeaconSettingsIndex = index;
         }
     }
 
-    void checkInterval(int speed) {
+    void checkInterval(int speed) { // Ajusta txInterval en función de la velocidad actual
         if (smartBeaconActive) {
             if (speed < currentSmartBeaconValues.slowSpeed) {
-                txInterval = currentSmartBeaconValues.slowRate * 1000;
+                txInterval = currentSmartBeaconValues.slowRate * 1000; // Velocidad por debajo del umbral lento
             } else if (speed > currentSmartBeaconValues.fastSpeed) {
-                txInterval = currentSmartBeaconValues.fastRate * 1000;
+                txInterval = currentSmartBeaconValues.fastRate * 1000; // Velocidad por encima del umbral rápido
             } else {
-                txInterval = min(currentSmartBeaconValues.slowRate, currentSmartBeaconValues.fastSpeed * currentSmartBeaconValues.fastRate / speed) * 1000;
+                txInterval = min(currentSmartBeaconValues.slowRate, currentSmartBeaconValues.fastSpeed * currentSmartBeaconValues.fastRate / speed) * 1000; // Interpolación: más rápido → más frecuente
             }
         }
     }
 
-    void checkFixedBeaconTime() {
+    void checkFixedBeaconTime() { // En modo no-SmartBeacon: fuerza beacon fijo por minutos
         if (!smartBeaconActive) {
             uint32_t lastTxSmartBeacon = millis() - lastTxTime;
             if (lastTxSmartBeacon >= Config.nonSmartBeaconRate * 60 * 1000) sendUpdate = true;
         }
     }
 
-    void checkState() {
-        if (wxRequestStatus && (millis() - wxRequestTime) > 20000) wxRequestStatus = false;
+    void checkState() { // Inhibe SmartBeacon si Winlink activo o hay solicitud WX en progreso
+        if (wxRequestStatus && (millis() - wxRequestTime) > 20000) wxRequestStatus = false; // Timeout de 20 s para solicitud WX
         smartBeaconActive = (winlinkStatus == 0 && !wxRequestStatus) ? currentBeacon->smartBeaconActive : false;
     }
     

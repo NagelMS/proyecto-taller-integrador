@@ -1,26 +1,12 @@
-/* Copyright (C) 2025 Ricardo Guzman - CA2RXU
- * 
- * This file is part of LoRa APRS Tracker.
- * 
- * LoRa APRS Tracker is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or 
- * (at your option) any later version.
- * 
- * LoRa APRS Tracker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with LoRa APRS Tracker. If not, see <https://www.gnu.org/licenses/>.
- */
-
 #include <ArduinoJson.h>
 #include "configuration.h"
 #include "web_utils.h"
 #include "display.h"
 #include "utils.h"
+
+// -----------------------------------------------------------------------------
+// Servidor HTTP (AsyncWebServer) con recursos embebidos
+// -----------------------------------------------------------------------------
 
 extern Configuration               Config;
 
@@ -53,30 +39,30 @@ namespace WEB_Utils {
 
     AsyncWebServer server(80);
 
-    void handleNotFound(AsyncWebServerRequest *request) {
+    void handleNotFound(AsyncWebServerRequest *request) { // 404 con cache-control
         AsyncWebServerResponse *response = request->beginResponse(404, "text/plain", "Not found");
         response->addHeader("Cache-Control", "max-age=3600");
         request->send(response);
     }
 
-    void handleStatus(AsyncWebServerRequest *request) {
+    void handleStatus(AsyncWebServerRequest *request) { // Endpoint simple de salud (OK)
         request->send(200, "text/plain", "OK");
     }
 
-    void handleHome(AsyncWebServerRequest *request) {
+    void handleHome(AsyncWebServerRequest *request) { // Sirve index.html.gz (embebido en binario)
 
         AsyncWebServerResponse *response = request->beginResponse(200, "text/html", (const uint8_t*)web_index_html, web_index_html_len);
         response->addHeader("Content-Encoding", "gzip");
         request->send(response);
     }
 
-    void handleFavicon(AsyncWebServerRequest *request) {
+    void handleFavicon(AsyncWebServerRequest *request) { // Entrega favicon gzip embebido
         AsyncWebServerResponse *response = request->beginResponse(200, "image/x-icon", (const uint8_t*)favicon_data, favicon_data_len);
         response->addHeader("Content-Encoding", "gzip");
         request->send(response);
     }
 
-    void handleReadConfiguration(AsyncWebServerRequest *request) {
+    void handleReadConfiguration(AsyncWebServerRequest *request) { // Lee /tracker_conf.json desde SPIFFS
 
         File file = SPIFFS.open("/tracker_conf.json");
         
@@ -88,7 +74,7 @@ namespace WEB_Utils {
         request->send(200, "application/json", fileContent);
     }
 
-    void handleReceivedPackets(AsyncWebServerRequest *request) {
+    void handleReceivedPackets(AsyncWebServerRequest *request) { // (Reservado) devuelve JSON de paquetes recibidos
         StaticJsonDocument<2048> data;
 
         String buffer;
@@ -98,7 +84,7 @@ namespace WEB_Utils {
         request->send(200, "application/json", buffer);
     }
 
-    void handleWriteConfiguration(AsyncWebServerRequest *request) {
+    void handleWriteConfiguration(AsyncWebServerRequest *request) { // Parse POST de formulario, actualiza Config y reinicia
         Serial.println("Got new config from www");
 
         //  Beacons
@@ -224,7 +210,7 @@ namespace WEB_Utils {
         ESP.restart();
     }
 
-    void handleAction(AsyncWebServerRequest *request) {
+    void handleAction(AsyncWebServerRequest *request) { // Acciones simples: enviar beacon / reiniciar
         String type = request->getParam("type", false)->value();
 
         if (type == "send-beacon") {
@@ -239,33 +225,33 @@ namespace WEB_Utils {
         }
     }
 
-    void handleStyle(AsyncWebServerRequest *request) {
+    void handleStyle(AsyncWebServerRequest *request) { // Sirve CSS embebido (gzip)
         AsyncWebServerResponse *response = request->beginResponse(200, "text/css", (const uint8_t*)web_style_css, web_style_css_len);
         response->addHeader("Content-Encoding", "gzip");
         request->send(response);
     }
 
-    void handleScript(AsyncWebServerRequest *request) {
+    void handleScript(AsyncWebServerRequest *request) { // Sirve JS embebido (gzip)
         AsyncWebServerResponse *response = request->beginResponse(200, "text/javascript", (const uint8_t*)web_script_js, web_script_js_len);
         response->addHeader("Content-Encoding", "gzip");
         request->send(response);
     }
 
-    void handleBootstrapStyle(AsyncWebServerRequest *request) {
+    void handleBootstrapStyle(AsyncWebServerRequest *request) { // Sirve Bootstrap CSS (gzip) con cache
         AsyncWebServerResponse *response = request->beginResponse(200, "text/css", (const uint8_t*)web_bootstrap_css, web_bootstrap_css_len);
         response->addHeader("Content-Encoding", "gzip");
         response->addHeader("Cache-Control", "max-age=3600");
         request->send(response);
     }
 
-    void handleBootstrapScript(AsyncWebServerRequest *request) {
+    void handleBootstrapScript(AsyncWebServerRequest *request) { // Sirve Bootstrap JS (gzip) con cache
         AsyncWebServerResponse *response = request->beginResponse(200, "text/javascript", (const uint8_t*)web_bootstrap_js, web_bootstrap_js_len);
         response->addHeader("Content-Encoding", "gzip");
         response->addHeader("Cache-Control", "max-age=3600");
         request->send(response);
     }
 
-    void setup() {
+    void setup() { // Registra rutas y lanza servidor HTTP
         server.on("/", HTTP_GET, handleHome);
         server.on("/status", HTTP_GET, handleStatus);
         //server.on("/received-packets.json", HTTP_GET, handleReceivedPackets);

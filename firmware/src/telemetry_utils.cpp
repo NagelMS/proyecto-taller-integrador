@@ -1,21 +1,3 @@
-/* Copyright (C) 2025 Ricardo Guzman - CA2RXU
- * 
- * This file is part of LoRa APRS Tracker.
- * 
- * LoRa APRS Tracker is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or 
- * (at your option) any later version.
- * 
- * LoRa APRS Tracker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with LoRa APRS Tracker. If not, see <https://www.gnu.org/licenses/>.
- */
-
 #include <APRSPacketLib.h>
 #include <Arduino.h>
 #include <vector>
@@ -26,6 +8,10 @@
 #include "lora_utils.h"
 #include "wx_utils.h"
 #include "display.h"
+
+// -----------------------------------------------------------------------------
+// APRS Telemetry: EQNS/UNIT/PARM y codificación Base91
+// -----------------------------------------------------------------------------
 
 
 extern Configuration    Config;
@@ -38,7 +24,7 @@ int telemetryCounter    = random(1,999);
 
 namespace TELEMETRY_Utils {
 
-    String joinWithCommas(const std::vector<String>& items) {
+    String joinWithCommas(const std::vector<String>& items) { // Une campos con comas para telemetría
         String result;
         for (size_t i = 0; i < items.size(); ++i) {
             result += items[i];
@@ -47,7 +33,7 @@ namespace TELEMETRY_Utils {
         return result;
     }
 
-    std::vector<String> getEquationCoefficients() {
+    std::vector<String> getEquationCoefficients() { // Coeficientes EQNS (a*x+b)+c por sensor
         std::vector<String> coefficients;
         if (Config.battery.sendVoltage && Config.battery.voltageAsTelemetry) coefficients.push_back("0,0.01,0");
         if (Config.telemetry.sendTelemetry) {
@@ -61,7 +47,7 @@ namespace TELEMETRY_Utils {
         return coefficients;
     }
 
-    std::vector<String> getUnitLabels() {
+    std::vector<String> getUnitLabels() { // Etiquetas UNIT por canal (VDC, C, %, hPa, etc.)
         std::vector<String> labels;
         if (Config.battery.sendVoltage && Config.battery.voltageAsTelemetry) labels.push_back("VDC");
         if (Config.telemetry.sendTelemetry) {
@@ -75,7 +61,7 @@ namespace TELEMETRY_Utils {
         return labels;
     }
 
-    std::vector<String> getParameterNames() {
+    std::vector<String> getParameterNames() { // Nombres PARM por canal (Celsius, Rel_Hum, etc.)
         std::vector<String> names;
         if (Config.battery.sendVoltage && Config.battery.voltageAsTelemetry) names.push_back("Voltage");
         if (Config.telemetry.sendTelemetry) {
@@ -89,28 +75,28 @@ namespace TELEMETRY_Utils {
         return names;
     }
 
-    void sendEquationCoefficients() {
+    void sendEquationCoefficients() { // Envía tramas "EQNS." con coeficientes
         String equationPacket = "EQNS." + joinWithCommas(getEquationCoefficients());
         String tempPacket = APRSPacketLib::generateMessagePacket(currentBeacon->callsign, "APLRT1", Config.path, currentBeacon->callsign, equationPacket);
         displayShow("<<< TX >>>", "Telemetry Packet:", "Equation Coefficients", 100);
         LoRa_Utils::sendNewPacket(tempPacket);
     }
 
-    void sendUnitLabels() {
+    void sendUnitLabels() { // Envía tramas "UNIT." con etiquetas
         String unitPacket = "UNIT." + joinWithCommas(getUnitLabels());
         String tempPacket = APRSPacketLib::generateMessagePacket(currentBeacon->callsign, "APLRT1", Config.path, currentBeacon->callsign, unitPacket);
         displayShow("<<< TX >>>", "Telemetry Packet:", "Unit/Label", 100);
         LoRa_Utils::sendNewPacket(tempPacket);
     }
 
-    void sendParameterNames() {
+    void sendParameterNames() { // Envía tramas "PARM." con nombres de parámetros
         String parameterPacket = "PARM." + joinWithCommas(getParameterNames());
         String tempPacket = APRSPacketLib::generateMessagePacket(currentBeacon->callsign, "APLRT1", Config.path, currentBeacon->callsign, parameterPacket);
         displayShow("<<< TX >>>", "Telemetry Packet:", "Parameter Name",100);
         LoRa_Utils::sendNewPacket(tempPacket);
     }
 
-    void sendEquationsUnitsParameters() {
+    void sendEquationsUnitsParameters() { // Secuencia de EQNS→UNIT→PARM con pausas de 3 s
         sendEquationCoefficients();
         delay(3000);
         sendUnitLabels();
@@ -120,7 +106,7 @@ namespace TELEMETRY_Utils {
         sendStartTelemetry = false;
     }
 
-    String generateEncodedTelemetryBytes(float value, bool counterBytes, byte telemetryType) {
+    String generateEncodedTelemetryBytes(float value, bool counterBytes, byte telemetryType) { // Codifica en 2 bytes (91-base) según tipo
         String encodedBytes;
         int tempValue;
 
@@ -128,10 +114,10 @@ namespace TELEMETRY_Utils {
             tempValue = value;
         } else {
             switch (telemetryType) {
-                case 0: tempValue = value * 100; break;         // Internal voltage (0-4,2V), Humidity, Gas calculation
-                case 1: tempValue = (value * 100) / 2; break;   // External voltage calculation (0-15V)
-                case 2: tempValue = (value * 10) + 500; break;  // Temperature
-                case 3: tempValue = (value * 8); break;         // Pressure
+                case 0: tempValue = value * 100; break;         // Voltaje/Humedad/Gas → 0..9999 escala         // Internal voltage (0-4,2V), Humidity, Gas calculation
+                case 1: tempValue = (value * 100) / 2; break;   // Voltaje externo 0..15 V   // External voltage calculation (0-15V)
+                case 2: tempValue = (value * 10) + 500; break;  // Temperatura (offset +500)  // Temperature
+                case 3: tempValue = (value * 8); break;         // Presión hPa * 8         // Pressure
                 default: tempValue = value; break;
             }
         }        
@@ -144,7 +130,7 @@ namespace TELEMETRY_Utils {
         return encodedBytes;
     }
 
-    String generateEncodedTelemetry() {
+    String generateEncodedTelemetry() { // Construye "|<CNT><CH1><CH2>...|" con canales habilitados
         String telemetry = "|";
         telemetry += generateEncodedTelemetryBytes(telemetryCounter, true, 0);
         telemetryCounter++;

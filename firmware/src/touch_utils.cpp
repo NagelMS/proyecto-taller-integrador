@@ -1,25 +1,11 @@
-/* Copyright (C) 2025 Ricardo Guzman - CA2RXU
- * 
- * This file is part of LoRa APRS Tracker.
- * 
- * LoRa APRS Tracker is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or 
- * (at your option) any later version.
- * 
- * LoRa APRS Tracker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with LoRa APRS Tracker. If not, see <https://www.gnu.org/licenses/>.
- */
-
 #include "configuration.h"
 #include "board_pinout.h"
 #include "button_utils.h"
 #include "touch_utils.h"
+
+// -----------------------------------------------------------------------------
+// Pantalla táctil: mapeo, debounce y acciones (GT911)
+// -----------------------------------------------------------------------------
 
 #ifdef HAS_TOUCHSCREEN
 
@@ -31,7 +17,7 @@
 
     TouchLib    touch(Wire, BOARD_I2C_SDA, BOARD_I2C_SCL, 0x00);
 
-    void (*lastCalledAction)() = nullptr;       // keep track of last calledAction from Touch
+    void (*lastCalledAction)() = nullptr; // Previene repeticiones al mantener presionado       // keep track of last calledAction from Touch
 
     extern      bool            sendUpdate;
 
@@ -43,7 +29,7 @@
     int16_t     xValueMax       = 320;
     int16_t     yValueMax       = 240;
 
-    int         touchDebounce   = 300;
+    int         touchDebounce   = 300; // Debounce (ms) entre toques válidos
     uint32_t    lastTouchTime   = 0;
 
     int16_t     xlastValue      = 0;
@@ -54,11 +40,11 @@
 
     namespace TOUCH_Utils {
 
-        void sendBeaconFromTouch() { sendUpdate = true;}
+        void sendBeaconFromTouch() { sendUpdate = true;} // Botón Send: solicita envío de beacon
 
-        void enterMenuFromTouch() { BUTTON_Utils::doublePress1();}
+        void enterMenuFromTouch() { BUTTON_Utils::doublePress1();} // Botón Menu: simula doble clic físico
 
-        void exitFromTouch() {
+        void exitFromTouch() { // Botón Exit: cierra menú y retorna a vista principal
             menuDisplay = 0;
             //Serial.println("CANCEL BUTTON PRESSED");
         }
@@ -70,11 +56,11 @@
         };
         
 
-        bool touchButtonPressed(int touchX, int touchY, int Xmin, int Xmax, int Ymin, int Ymax) {
+        bool touchButtonPressed(int touchX, int touchY, int Xmin, int Xmax, int Ymin, int Ymax) { // Hit-test con margen ±5 px
             return (touchX >= (Xmin - 5) && touchX <= (Xmax + 5) && touchY >= (Ymin - 5) && touchY <= (Ymax + 5));
         }
         
-        void checkLiveButtons(uint16_t x, uint16_t y) {
+        void checkLiveButtons(uint16_t x, uint16_t y) { // Busca el botón que contiene (x,y) y ejecuta su acción
             for (int i = 0; i < sizeof(touchButtons_0) / sizeof(touchButtons_0[0]); i++) {
                 if (touchButtonPressed(x, y, touchButtons_0[i].Xmin, touchButtons_0[i].Xmax, touchButtons_0[i].Ymin, touchButtons_0[i].Ymax)) {
 
@@ -89,7 +75,7 @@
             }
         }
 
-        void loop() {
+        void loop() { // Lee coordenadas táctiles, mapea (pantalla rotada) y ejecuta acciones con debounce
             if (touch.read() && (millis() - lastTouchTime > touchDebounce)) {
                 TP_Point touchPoint = touch.getPoint(0);
                 uint16_t xValueTouched = map(touchPoint.y, xCalibratedMin, xCalibratedMax, 0, xValueMax);   // x and y values are inverted because
@@ -101,7 +87,7 @@
             if (millis() - lastTouchTime > 1000) lastCalledAction = nullptr;    // reset touchButton when staying in same menu (like Tx/Send)
         }
 
-        void setup() {
+        void setup() { // Inicializa TouchLib según dirección I2C detectada (0x14/0x5D)
             if (!Config.simplifiedTrackerMode) {
                 if (touchModuleAddress != 0x00) {
                     if (touchModuleAddress == 0x14) {

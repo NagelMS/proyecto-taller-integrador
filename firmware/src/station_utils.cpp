@@ -1,21 +1,3 @@
-/* Copyright (C) 2025 Ricardo Guzman - CA2RXU
- * 
- * This file is part of LoRa APRS Tracker.
- * 
- * LoRa APRS Tracker is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or 
- * (at your option) any later version.
- * 
- * LoRa APRS Tracker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with LoRa APRS Tracker. If not, see <https://www.gnu.org/licenses/>.
- */
-
 #include <APRSPacketLib.h>
 #include <TinyGPS++.h>
 #include <SPIFFS.h>
@@ -31,6 +13,10 @@
 #include "wx_utils.h"
 #include "display.h"
 #include "logger.h"
+
+// -----------------------------------------------------------------------------
+// Gestión de estaciones cercanas y TX de beacons
+// -----------------------------------------------------------------------------
 
 extern Configuration        Config;
 extern Beacon               *currentBeacon;
@@ -84,7 +70,7 @@ nearStation nearbyStations[nearbyStationsSize];
 
 namespace STATION_Utils {
 
-    void nearStationInit() {
+    void nearStationInit() { // Inicializa buffer circular de estaciones cercanas
         for (int i = 0; i < nearbyStationsSize; i++) {
             nearbyStations[i].callsign    = "";
             nearbyStations[i].distance    = 0.0;
@@ -93,12 +79,12 @@ namespace STATION_Utils {
         }
     }
 
-    String getNearStation(uint8_t position) {
+    String getNearStation(uint8_t position) { // Devuelve string formateado "CALL> dist km curso"
         if (nearbyStations[position].callsign == "") return "";
         return nearbyStations[position].callsign + "> " + String(nearbyStations[position].distance,2) + "km " + String(nearbyStations[position].course);
     }
 
-    void deleteListenedStationsByTime() {
+    void deleteListenedStationsByTime() { // Purga entradas vencidas y compacta (bubble shift)
         for (int a = 0; a < nearbyStationsSize; a++) {                       // clean nearbyStations[] after time
             if (nearbyStations[a].callsign != "" && (millis() - nearbyStations[a].lastTime > Config.rememberStationTime * 60 * 1000)) {
                 nearbyStations[a].callsign    = "";
@@ -120,16 +106,16 @@ namespace STATION_Utils {
         lastDeleteListenedStation = millis();
     }
 
-    void checkListenedStationsByTimeAndDelete() {
+    void checkListenedStationsByTimeAndDelete() { // Trigger de purga por temporizador
         if (millis() - lastDeleteListenedStation > Config.rememberStationTime * 60 * 1000) deleteListenedStationsByTime();
     }
 
-    void orderListenedStationsByDistance(const String& callsign, float distance, float course) {   
+    void orderListenedStationsByDistance(const String& callsign, float distance, float course) { // Inserta/actualiza por alias y ordena por distancia (bubble)   
         bool shouldSortbyDistance = false;
         bool callsignInNearStations = false;
 
         for (int a = 0; a < nearbyStationsSize; a++) {                       // check if callsign is in nearbyStations[]
-            if (nearbyStations[a].callsign == callsign) {
+            if (nearbyStations[a].callsign == callsign) { // Si ya existe, refresca tiempo y distancia
                 callsignInNearStations  = true;
                 nearbyStations[a].lastTime = millis();        // update listened millis()
                 if (nearbyStations[a].distance != distance) { // update distance if needed
@@ -140,7 +126,7 @@ namespace STATION_Utils {
             }
         }
     
-        if (!callsignInNearStations) {                      // callsign not in nearbyStations[]
+        if (!callsignInNearStations) { // Si no existe, intenta colocar en primer slot libre                      // callsign not in nearbyStations[]
             for (int b = 0; b < nearbyStationsSize; b++) {                   // if nearbyStations[] is available
                 if (nearbyStations[b].callsign == "") {
                     shouldSortbyDistance        = true;
@@ -152,7 +138,7 @@ namespace STATION_Utils {
                 }
             }
 
-            if (!shouldSortbyDistance) {                    // if no more nearbyStations[] available , it compares distances to move and replace
+            if (!shouldSortbyDistance) { // Si está lleno, reemplaza el más lejano si corresponde                    // if no more nearbyStations[] available , it compares distances to move and replace
                 for (int c = 0; c < nearbyStationsSize; c++) {
                     if (nearbyStations[c].distance > distance) {
                         for (int d = nearbyStationsSize - 1; d > c; d--) nearbyStations[d] = nearbyStations[d - 1]; // move all one position down
@@ -166,7 +152,7 @@ namespace STATION_Utils {
             }
         }
 
-        if (shouldSortbyDistance) { /*  BUBLE SORT  */      // sorts by distance (only nearbyStations[] that are not "")
+        if (shouldSortbyDistance) { /*  BUBLE SORT  */ // Ordenamiento estable por distancia      // sorts by distance (only nearbyStations[] that are not "")
             for (int e = 0; e < nearbyStationsSize - 1; e++) {
                 for (int f = 0; f < nearbyStationsSize - e - 1; f++) {
                     if (nearbyStations[f].callsign != "" && nearbyStations[f + 1].callsign != "") {
@@ -181,7 +167,7 @@ namespace STATION_Utils {
         }
     }
 
-    void checkStandingUpdateTime() {
+    void checkStandingUpdateTime() { // Dispara update en reposo tras X minutos y despierta GPS si estaba dormido
         if (!sendUpdate && lastTx >= Config.standingUpdateTime * 60 * 1000) {
             sendUpdate = true;
             sendStandingUpdate = true;
@@ -191,11 +177,11 @@ namespace STATION_Utils {
         }
     }
 
-    void sendBeacon() {
+    void sendBeacon() { // Construye y envía paquete APRS (Mic-E/Base91), anexa voltaje/telemetría/Winlink si aplica
         if (sendStartTelemetry && ((Config.battery.sendVoltage && Config.battery.voltageAsTelemetry) || (Config.telemetry.sendTelemetry && wxModuleFound)) && lastTxTime > 0) TELEMETRY_Utils::sendEquationsUnitsParameters();
 
         String path = Config.path;
-        if (gps.speed.kmph() > 200 || gps.altitude.meters() > 9000) path = ""; // avoid plane speed and altitude
+        if (gps.speed.kmph() > 200 || gps.altitude.meters() > 9000) path = ""; // Evita tramas de avión (filtros anti-aviación) // avoid plane speed and altitude
         String packet;
         if (miceActive) {
             packet = APRSPacketLib::generateMiceGPSBeaconPacket(currentBeacon->micE, currentBeacon->callsign, currentBeacon->symbol, currentBeacon->overlay, path, gps.location.lat(), gps.location.lng(), gps.course.deg(), gps.speed.knots(), gps.altitude.meters());
@@ -204,14 +190,14 @@ namespace STATION_Utils {
         }
 
         String batteryVoltage = BATTERY_Utils::getBatteryInfoVoltage();
-        bool shouldSleepLowVoltage = false;
+        bool shouldSleepLowVoltage = false; // Señal para apagado por batería baja
         #if defined(BATTERY_PIN) || defined(HAS_AXP192) || defined(HAS_AXP2101)
-            if (Config.battery.monitorVoltage && batteryVoltage.toFloat() < Config.battery.sleepVoltage) shouldSleepLowVoltage = true;
+            if (Config.battery.monitorVoltage && batteryVoltage.toFloat() < Config.battery.sleepVoltage) shouldSleepLowVoltage = true; // Umbral de suspensión
         #endif
         
         if (!shouldSleepLowVoltage) {
             String comment = (winlinkCommentState ? "winlink" : currentBeacon->comment);
-            int sendCommentAfterXBeacons = ((winlinkCommentState || Config.battery.sendVoltageAlways) ? 1 : Config.sendCommentAfterXBeacons);
+            int sendCommentAfterXBeacons = ((winlinkCommentState || Config.battery.sendVoltageAlways) ? 1 : Config.sendCommentAfterXBeacons); // Fuerza comentario/telemetría con mayor frecuencia si Winlink/batería
 
             if (Config.battery.sendVoltage && !Config.battery.voltageAsTelemetry) {
                 #if defined(HAS_AXP192) || defined(HAS_AXP2101)
@@ -255,7 +241,7 @@ namespace STATION_Utils {
 
         if (Config.bluetooth.useBLE) BLE_Utils::sendToPhone(packet);   // send Tx packets to Phone too
 
-        if (shouldSleepLowVoltage) POWER_Utils::shutdown();
+        if (shouldSleepLowVoltage) POWER_Utils::shutdown(); // Protección por bajo voltaje
         
         if (smartBeaconActive) {
             lastTxLat       = gps.location.lat();
@@ -265,10 +251,10 @@ namespace STATION_Utils {
         }
         lastTxTime  = millis();
         sendUpdate  = false;
-        if (currentBeacon->gpsEcoMode) gpsShouldSleep = true;
+        if (currentBeacon->gpsEcoMode) gpsShouldSleep = true; // Activa eco de GPS tras transmitir
     }
 
-    void saveIndex(uint8_t type, uint8_t index) {
+    void saveIndex(uint8_t type, uint8_t index) { // Guarda índices de selección (callsign, freq, brillo) en SPIFFS
         String filePath;
         switch (type) {
             case 0: filePath = "/callsignIndex.txt"; break;
@@ -294,7 +280,7 @@ namespace STATION_Utils {
         fileIndex.close();
     }
     
-    void loadIndex(uint8_t type) {
+    void loadIndex(uint8_t type) { // Lee índices desde SPIFFS; asigna valores por defecto si no existe
         String filePath;
         switch (type) {
             case 0: filePath = "/callsignIndex.txt"; break;

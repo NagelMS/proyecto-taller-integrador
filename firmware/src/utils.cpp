@@ -1,21 +1,3 @@
-/* Copyright (C) 2025 Ricardo Guzman - CA2RXU
- * 
- * This file is part of LoRa APRS Tracker.
- * 
- * LoRa APRS Tracker is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or 
- * (at your option) any later version.
- * 
- * LoRa APRS Tracker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with LoRa APRS Tracker. If not, see <https://www.gnu.org/licenses/>.
- */
-
 #include <APRSPacketLib.h>
 #include <logger.h>
 #include <Wire.h>
@@ -24,6 +6,10 @@
 #include "lora_utils.h"
 #include "display.h"
 #include "utils.h"
+
+// -----------------------------------------------------------------------------
+// Utilidades generales: locator Maidenhead, fecha/hora, I2C scan, estado
+// -----------------------------------------------------------------------------
 
 extern Beacon                   *currentBeacon;
 extern Configuration            Config;
@@ -49,13 +35,13 @@ uint8_t     touchModuleAddress  = 0x00;
 
 namespace Utils {
   
-    static char locator[11];    // letterize and getMaidenheadLocator functions are Copyright (c) 2021 Mateusz Salwach - MIT License
+    static char locator[11]; // Buffer de salida para Maidenhead (hasta 10 chars + NUL)    // letterize and getMaidenheadLocator functions are Copyright (c) 2021 Mateusz Salwach - MIT License
 
-    static char letterize(int x) {
+    static char letterize(int x) { // Convierte índice a letra A..Z
         return (char) x + 65;
     }
 
-    char *getMaidenheadLocator(double lat, double lon, uint8_t size) {
+    char *getMaidenheadLocator(double lat, double lon, uint8_t size) { // Cálculo de grid Maidenhead (lon/lat → campos/subcampos)
         double LON_F[]={20,2.0,0.083333,0.008333,0.0003472083333333333};
         double LAT_F[]={10,1.0,0.0416665,0.004166,0.0001735833333333333};
         int i;
@@ -80,7 +66,7 @@ namespace Utils {
         return locator;
     }
 
-    static String padding(unsigned int number, unsigned int width) {
+    static String padding(unsigned int number, unsigned int width) { // Padding con ceros a la izquierda
         String result;
         String num(number);
         if (num.length() > width) width = num.length();
@@ -91,7 +77,7 @@ namespace Utils {
         return result;
     }
 
-    String createDateString(time_t t) {
+    String createDateString(time_t t) { // YYYY-MM-DD
         String dateString = padding(year(t), 4);
         dateString += "-";
         dateString += padding(month(t), 2);
@@ -100,7 +86,7 @@ namespace Utils {
         return dateString;
     }
 
-    String createTimeString(time_t t) {
+    String createTimeString(time_t t) { // HH:MM:SS
         String timeString = padding(hour(t), 2);
         timeString += ":";
         timeString += padding(minute(t), 2);
@@ -109,7 +95,7 @@ namespace Utils {
         return timeString;
     }
 
-    void checkStatus() {
+    void checkStatus() { // Emite paquete de estado cada 10 min si pasaron ≥10 s desde el último TX
         if (statusState) {
             uint32_t currentTime = millis();
             uint32_t statusTx = currentTime - statusTime;
@@ -121,7 +107,7 @@ namespace Utils {
         }
     }
 
-    void checkDisplayEcoMode() {
+    void checkDisplayEcoMode() { // Apaga pantalla si excede timeout en modo Eco
         if (displayState && displayEcoMode && menuDisplay == 0) {
             uint32_t currentTime = millis();
             uint32_t lastDisplayTime = currentTime - displayTime;
@@ -132,12 +118,12 @@ namespace Utils {
         }
     }
 
-    String getSmartBeaconState() {
+    String getSmartBeaconState() { // Devuelve estado textual de SmartBeacon
         if (currentBeacon->smartBeaconActive) return "On";
         return "Off";
     }
 
-    void checkFlashlight() {
+    void checkFlashlight() { // Controla LED linterna (ON/OFF) según flag y GPIO
         if (flashlight && !digitalRead(Config.notification.ledFlashlightPin)) {
             digitalWrite(Config.notification.ledFlashlightPin, HIGH);
         } else if (!flashlight && digitalRead(Config.notification.ledFlashlightPin)) {
@@ -145,7 +131,7 @@ namespace Utils {
         }       
     }
 
-    void i2cScannerForPeripherals() {
+    void i2cScannerForPeripherals() { // Escaneo I2C: detecta módulos WX, teclados y touch; guarda direcciones
         uint8_t err, addr;
         if (Config.telemetry.active) {
             for (addr = 1; addr < 0x7F; addr++) {
@@ -158,7 +144,7 @@ namespace Utils {
                 #endif
                 if (err == 0) {
                     //Serial.println(addr); this shows any connected board to I2C
-                    if (addr == 0x76 || addr == 0x77) {
+                    if (addr == 0x76 || addr == 0x77) { // BME280/BMP280 típicos
                         wxModuleAddress = addr;
                         logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Main", "Wx Module Connected to I2C");
                     }
@@ -183,7 +169,7 @@ namespace Utils {
             for (addr = 1; addr < 0x7F; addr++) {
                 Wire.beginTransmission(addr);
                 err = Wire.endTransmission();
-                if (err == 0 && addr == 0x5F) { // CARDKB from m5stack.com (YEL - SDA / WTH SCL)
+                if (err == 0 && addr == 0x5F) { // CARDKB (M5Stack) // CARDKB from m5stack.com (YEL - SDA / WTH SCL)
                     //Serial.println(addr); this shows any connected board to I2C
                     keyboardAddress = addr;
                     logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Main", "CARDKB Keyboard Connected to I2C");
@@ -196,7 +182,7 @@ namespace Utils {
                 Wire.beginTransmission(addr);
                 err = Wire.endTransmission();
                 if (err == 0) {
-                    if (addr == 0x14 || addr == 0x5D ) {
+                    if (addr == 0x14 || addr == 0x5D ) { // GT911 (touch)
                         touchModuleAddress = addr;
                         logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Main", "Touch Module Connected to I2C");
                     }

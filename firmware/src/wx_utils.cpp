@@ -1,21 +1,3 @@
-/* Copyright (C) 2025 Ricardo Guzman - CA2RXU
- * 
- * This file is part of LoRa APRS Tracker.
- * 
- * LoRa APRS Tracker is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or 
- * (at your option) any later version.
- * 
- * LoRa APRS Tracker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with LoRa APRS Tracker. If not, see <https://www.gnu.org/licenses/>.
- */
-
 #include <TinyGPS++.h>
 #include <logger.h>
 #ifdef LIGHTTRACKER_PLUS_1_0
@@ -25,6 +7,10 @@
 #include "configuration.h"
 #include "wx_utils.h"
 #include "display.h"
+
+// -----------------------------------------------------------------------------
+// Sensores meteo (BME280/BMP280/BME680/SHTC3): setup y lectura
+// -----------------------------------------------------------------------------
 
 #define SEALEVELPRESSURE_HPA (1013.25)
 #define CORRECTION_FACTOR (8.2296)      // for meters
@@ -57,7 +43,7 @@ Adafruit_SHTC3 shtc3 = Adafruit_SHTC3();
 
 namespace WX_Utils {    
 
-    void setup() {
+    void setup() { // Detecta sensor según dirección I2C; configura oversampling y bandera wxModuleType
         if (Config.telemetry.active) {
             #ifdef LIGHTTRACKER_PLUS_1_0
                 if (!shtc3.begin()) {
@@ -134,7 +120,7 @@ namespace WX_Utils {
         }
     }
 
-    String formatSensorValueforScreen(float value, int width, const String& errorValue) {
+    String formatSensorValueforScreen(float value, int width, const String& errorValue) { // Formato fijo con padding para OLED
         String valueString = String((int)value);
         if (valueString.length() > width) return errorValue;
         while (valueString.length() < width) {
@@ -143,7 +129,7 @@ namespace WX_Utils {
         return valueString;
     }
 
-    String readDataSensor(const uint8_t type) {
+    String readDataSensor(const uint8_t type) { // Lee cada 60 s, codifica telemetría o prepara texto para pantalla
         uint32_t lastReading = millis() - sensorLastReading;
         if (lastReading > 60 * 1000) {
             #ifdef LIGHTTRACKER_PLUS_1_0
@@ -189,15 +175,15 @@ namespace WX_Utils {
             sensorTelemetry = ((type == 1) ? " - C    - %    - hPa" : "");
         } else {
             if (type == 0) {
-                sensorTelemetry = TELEMETRY_Utils::generateEncodedTelemetryBytes(newTemp + Config.telemetry.temperatureCorrection, false, 2); // temperature
+                sensorTelemetry = TELEMETRY_Utils::generateEncodedTelemetryBytes(newTemp + Config.telemetry.temperatureCorrection, false, 2); // temperature (°C)
                 if (wxModuleType == 1 || wxModuleType == 3 || wxModuleType == 4) {
-                    sensorTelemetry += TELEMETRY_Utils::generateEncodedTelemetryBytes(newHum, false, 0); // humidity
+                    sensorTelemetry += TELEMETRY_Utils::generateEncodedTelemetryBytes(newHum, false, 0); // humidity (%)
                 }
                 if (wxModuleType == 1 || wxModuleType == 2 || wxModuleType == 3) {
-                    sensorTelemetry += TELEMETRY_Utils::generateEncodedTelemetryBytes(newPress + (gps.altitude.meters()/CORRECTION_FACTOR), false, 3); // pressure
+                    sensorTelemetry += TELEMETRY_Utils::generateEncodedTelemetryBytes(newPress + (gps.altitude.meters()/CORRECTION_FACTOR), false, 3); // pressure (hPa, corregida por altitud)
                 }
                 if (wxModuleType == 3) {
-                    sensorTelemetry += TELEMETRY_Utils::generateEncodedTelemetryBytes(newGas, false, 0); // gas
+                    sensorTelemetry += TELEMETRY_Utils::generateEncodedTelemetryBytes(newGas, false, 0); // gas (kΩ)
                 }
             } else {    // show it in (Oled) Screen
                 sensorTelemetry = formatSensorValueforScreen(newTemp + Config.telemetry.temperatureCorrection, 3, "-99");

@@ -1,21 +1,3 @@
-/* Copyright (C) 2025 Ricardo Guzman - CA2RXU
- * 
- * This file is part of LoRa APRS Tracker.
- * 
- * LoRa APRS Tracker is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or 
- * (at your option) any later version.
- * 
- * LoRa APRS Tracker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with LoRa APRS Tracker. If not, see <https://www.gnu.org/licenses/>.
- */
-
 #include <APRSPacketLib.h>
 #include <TinyGPS++.h>
 #include <SPIFFS.h>
@@ -30,6 +12,10 @@
 #include "gps_utils.h"
 #include "display.h"
 #include "logger.h"
+
+// -----------------------------------------------------------------------------
+// Gestión de mensajes APRS/WLNK y buffer de retransmisión
+// -----------------------------------------------------------------------------
 
 
 extern Beacon               *currentBeacon;
@@ -84,11 +70,11 @@ uint32_t    messageLedTime      = millis();
 
 namespace MSG_Utils {
 
-    bool warnNoAPRSMessages() {
+    bool warnNoAPRSMessages() { // Indica si no hay mensajes APRS almacenados {
         return noAPRSMsgWarning;
     }
 
-    bool warnNoWLNKMails() {
+    bool warnNoWLNKMails() { // Indica si no hay correos WLNK guardados {
         return noWLNKMsgWarning;
     }
 
@@ -104,7 +90,7 @@ namespace MSG_Utils {
         return numWLNKMessages;
     }
 
-    void loadNumMessages() {
+    void loadNumMessages() { // Lee cantidad de mensajes APRS/WLNK en SPIFFS y actualiza contadores {
         if(!SPIFFS.begin(true)) {
             Serial.println("An Error has occurred while mounting SPIFFS");
             return;
@@ -147,7 +133,7 @@ namespace MSG_Utils {
         logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, "Main", "Number of Winlink Mails : %s", String(numWLNKMessages));
     }
 
-    void loadMessagesFromMemory(uint8_t typeOfMessage) {
+    void loadMessagesFromMemory(uint8_t typeOfMessage) { // Carga mensajes desde SPIFFS al vector en RAM {
         File fileToRead;
         if (typeOfMessage == 0) {  // APRS
             noAPRSMsgWarning = false;
@@ -192,7 +178,7 @@ namespace MSG_Utils {
         }
     }
 
-    void ledNotification() {
+    void ledNotification() { // Control parpadeo LED de mensaje (5s ON/OFF) {
         uint32_t currentTime = millis();
         uint32_t ledTimeDelta = currentTime - messageLedTime;
         if (messageLed) {
@@ -207,7 +193,7 @@ namespace MSG_Utils {
         }
     }
 
-    void deleteFile(uint8_t typeOfFile) {
+    void deleteFile(uint8_t typeOfFile) { // Elimina archivo de mensajes APRS o WLNK {
         if(!SPIFFS.begin(true)) {
             Serial.println("An Error has occurred while mounting SPIFFS");
             return;
@@ -220,7 +206,7 @@ namespace MSG_Utils {
         if (Config.notification.ledMessage) messageLed = false;
     }
 
-    void saveNewMessage(uint8_t typeMessage, const String& station, const String& newMessage) {
+    void saveNewMessage(uint8_t typeMessage, const String& station, const String& newMessage) { // Guarda nuevo mensaje evitando duplicados consecutivos {
         String message = newMessage;
         if (typeMessage == 0 && lastMessageSaved != message) {   //APRS
             File fileToAppendAPRS = SPIFFS.open("/aprsMessages.txt", FILE_APPEND);
@@ -257,7 +243,7 @@ namespace MSG_Utils {
         }
     }
 
-    void sendMessage(const String& station, const String& textMessage) {
+    void sendMessage(const String& station, const String& textMessage) { // Construye paquete APRS y lo transmite {
         String newPacket = APRSPacketLib::generateMessagePacket(currentBeacon->callsign, "APLRT1", Config.path, station, textMessage);
         if (textMessage.indexOf("ack") == 0 && station != "WLNK-1") {  // don't show Winlink ACK
             displayShow("<<ACK Tx>>", "", "", 500);
@@ -279,7 +265,7 @@ namespace MSG_Utils {
         return String(ackRequestNumber);
     }
 
-    void addToOutputBuffer(uint8_t typeOfMessage, const String& station, const String& textMessage) {
+    void addToOutputBuffer(uint8_t typeOfMessage, const String& station, const String& textMessage) { // Inserta en buffer de salida evitando duplicados {
         bool alreadyInBuffer;
         if (typeOfMessage == 1) {
             alreadyInBuffer = false;
@@ -318,7 +304,7 @@ namespace MSG_Utils {
         }
     }
 
-    void processOutputBuffer() {
+    void processOutputBuffer() { // Gestiona envío, ACK y reintentos temporizados (6→0) {
         if (!outputMessagesBuffer.empty() && (millis() - lastMsgRxTime) >= 6000 && (millis() - lastTxTime) > 3000) {
             String addressee = outputMessagesBuffer[0].substring(0, outputMessagesBuffer[0].indexOf(","));
             String message = outputMessagesBuffer[0].substring(outputMessagesBuffer[0].indexOf(",") + 1);
@@ -379,7 +365,7 @@ namespace MSG_Utils {
         }
     }
 
-    void cleanOutputAckRequestBuffer(const String& station) {
+    void cleanOutputAckRequestBuffer(const String& station) { // Limpia buffer de ACK pendientes de una estación {
         if (!outputAckRequestBuffer.empty()) {
             for (int i = outputAckRequestBuffer.size() - 1; i >= 0; i--) {
                 if (outputAckRequestBuffer[i].indexOf(station) == 0) outputAckRequestBuffer.erase(outputAckRequestBuffer.begin() + i);
@@ -387,11 +373,11 @@ namespace MSG_Utils {
         }
     }
 
-    void clean15SegBuffer() {
+    void clean15SegBuffer() { // Borra paquetes repetidos tras 15 s {
         if (!packet15SegBuffer.empty() && (millis() - packet15SegBuffer[0].receivedTime) >  15 * 1000) packet15SegBuffer.erase(packet15SegBuffer.begin());
     }
 
-    bool check15SegBuffer(const String& station, const String& textMessage) {
+    bool check15SegBuffer(const String& station, const String& textMessage) { // Evita procesar el mismo paquete en 15 s {
         if (!packet15SegBuffer.empty()) {
             for (int i = 0; i < packet15SegBuffer.size(); i++) {
                 if (packet15SegBuffer[i].station == station && packet15SegBuffer[i].payload == textMessage) return false;
@@ -405,7 +391,7 @@ namespace MSG_Utils {
         return true;
     }
     
-    void checkReceivedMessage(ReceivedLoRaPacket packet) {
+    void checkReceivedMessage(ReceivedLoRaPacket packet) { // Analiza tramas LoRa recibidas, filtra duplicados, maneja APRS/WLNK {
         if(packet.text.isEmpty()) {
             return;
         }
