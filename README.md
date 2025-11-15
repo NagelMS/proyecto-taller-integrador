@@ -15,7 +15,7 @@ Este repositorio contiene el desarrollo de **firmware** para un módulo *tracker
 2. [Contexto y Alcance](#contexto-y-alcance)
 3. [Arquitectura del Sistema](#arquitectura-del-sistema)
 4. [Estructura de Directorios](#estructura-de-directorios)
-5. [Diagramas de Flujo](#diagramas-de-flujo)
+5. [Diseño Modular](#diseño-modular)
 6. [Construcción y Uso](#construcción-y-uso)
    - [Ejemplos LilyGO](#ejemplos-lilygo)
 7. [Cronograma](#cronograma)
@@ -82,14 +82,34 @@ Estructura
 
 ---
 
-## Diagramas de Flujo
+## Diseño Modular
+
+Se realizó un diseño modular, donde primero se presenta el diagrama de primer nivel demostrando el la solución general
 
 ```mermaid
 graph TD;
-    Sensor-->FormatoAPRS;
-    FormatoAPRS-->TransmisorLoRa;
-    TransmisorLoRa-->ReceptorLoRa;
+    Problema:Monitoreo-Localización-->Monitoreo-LoRa-APRS;
+    Monitoreo-LoRa-APRS-->Mejor-Control-de-Grupos;
 ```
+Seguidamente se puede detallar la solución por medio de un diagrama de segundo nivel, donde se muestra a nivel general los modulos y sus conexiones.
+
+```mermaid
+graph TD;
+    Monitoreo-LoRa-APRS-->GPS;
+    GPS-->Gateway-Central;
+    Monitoreo-LoRa-APRS-->Gateway-Central;
+    Monitoreo-LoRa-APRS-->UI;
+    Gateway-Central-->UI;
+    UI-->Gateway-Central;
+```
+
+Por ultimo, en el nivel más detallado, se muestran los modulos principales para el funcionamiento del proyecto.
+
+```mermaid
+graph TD;
+    GPS-->Microcontrolador-->PMIC-->Microcontrolador-->Modulo-LoRa-->Gateway-->Base-Datos-->UI;
+```
+
 
 ---
 
@@ -99,13 +119,26 @@ graph TD;
 2. Seleccionar el ejemplo apropiado en `platformio.ini` (descomentar la entrada correspondiente).
 3. Compilar y programar la **LilyGO T‑Beam ESP32**.
 4. Verificar en consola los mensajes de inicialización (GNSS, radio LoRa, parámetros de enlace).
-5. Realizar una prueba de cobertura en campo y ajustar **SF/BW/CR** según el entorno.
 
 ### Ejemplos LilyGO
 
+Al programar la placa de desarrollo, se debe primero esperar a que se obtenga señal del GPS, cuando empieza a parpadear un LED rojo en la placa significa que se está obteniendo la señal del GPS. Una vez se obtiene señal es posible empezar a recibir y transmitir señales. En la pantalla OLED se visualizan todos los datos necesarios.
+
+<p align="center">
+<img src="./documentacion/informe_parcial/fig/preeliminares.jpg" alt="Diagrama" width="700px">
+</p>
+
+De este modo, si un gateway recibe lo transmitido por el modulo, se pueden observar la ubicación en el 
+
+<p align="center">
+<img src="./documentacion/informe_parcial/fig/resultado-tracker.jpeg" alt="Diagrama" width="700px">
+</p>
+
+
+
 ---
 
-## Cronograma de Trabajo — Proyecto Tracker LoRa/APRS
+## Cronograma
 
 ```mermaid
 ---
