@@ -1,21 +1,3 @@
-/* Copyright (C) 2025 Ricardo Guzman - CA2RXU
- * 
- * This file is part of LoRa APRS Tracker.
- * 
- * LoRa APRS Tracker is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or 
- * (at your option) any later version.
- * 
- * LoRa APRS Tracker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with LoRa APRS Tracker. If not, see <https://www.gnu.org/licenses/>.
- */
-
 #include <OneButton.h>
 #include "keyboard_utils.h"
 #include "configuration.h"
@@ -41,7 +23,10 @@
             OneButton userButton3 = OneButton(BUTTON3_PIN, true, true);
             OneButton userButton4 = OneButton(BUTTON4_PIN, true, true);
         #endif
-
+        
+        // singlePress1()
+        // Maneja una pulsación simple del botón principal: actualiza el temporizador del menú
+        // y simula la acción de "flecha abajo" en la navegación del menú.
         void singlePress1() {
             menuTime = millis();
             KEYBOARD_Utils::downArrow();
@@ -60,12 +45,17 @@
                 KEYBOARD_Utils::leftArrow();
             }
         #endif
-
+        
+        // longPress1()
+        // Maneja una pulsación larga del botón principal: actualiza el temporizador del menú
+        // y ejecuta la acción asociada a "flecha derecha" (usada aquí como acción prolongada).
         void longPress1() {
             menuTime = millis();
             KEYBOARD_Utils::rightArrow();
         }
-
+        // doublePress1()
+        // Maneja una pulsación doble: enciende la pantalla si está apagada o vuelve al estado
+        // principal (menuDisplay = 0) si está en un submenú; actualiza timers relevantes.
         void doublePress1() {
             displayToggle(true);
             menuTime = millis();
@@ -76,13 +66,19 @@
                 displayTime = millis();
             }
         }
-
+        // multiPress1()
+        // Maneja múltiples pulsaciones rápidas: enciende la pantalla, actualiza el temporizador
+        // y cambia el menú a la entrada especial multi-press (menuDisplay = 9000).
         void multiPress1() {
             displayToggle(true);
             menuTime = millis();
             menuDisplay = 9000;
         }
 
+        // loop()
+        // Debe llamarse periódicamente desde el loop principal: procesa el objeto OneButton
+        // para detectar eventos (click, long press, double, multi) y despachar callbacks.
+        // No hace nada si estamos en modo simplificado.
         void loop() {
             if (!Config.simplifiedTrackerMode) {
                 userButton.tick();
@@ -93,7 +89,9 @@
                 #endif
             }
         }
-
+        // setup()
+        // Inicializa los callbacks del/los botones (attachClick, attachLongPressStart, etc.)
+        // y se llama una vez en el arranque. No registra handlers si estamos en modo simplificado.
         void setup() {
             if (!Config.simplifiedTrackerMode) {
                 userButton.attachClick(singlePress1);

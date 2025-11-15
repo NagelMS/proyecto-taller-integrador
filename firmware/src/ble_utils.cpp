@@ -1,21 +1,3 @@
-/* Copyright (C) 2025 Ricardo Guzman - CA2RXU
- * 
- * This file is part of LoRa APRS Tracker.
- * 
- * LoRa APRS Tracker is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or 
- * (at your option) any later version.
- * 
- * LoRa APRS Tracker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with LoRa APRS Tracker. If not, see <https://www.gnu.org/licenses/>.
- */
-
 #include <NimBLEDevice.h>
 #include "configuration.h"
 #include "lora_utils.h"
@@ -53,12 +35,17 @@ String  kissSerialBuffer        = "";
 
 
 class MyServerCallbacks : public NimBLEServerCallbacks {
+    // MyServerCallbacks::onConnect()
+    // Callback llamado cuando un cliente BLE se conecta al servidor.
+    // Actualiza el estado global de conexión y registra el evento en el logger.
     void onConnect(NimBLEServer* pServer) {
         bluetoothConnected = true;
         logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "BLE", "%s", "BLE Client Connected");
         delay(100);
     }
-
+    // MyServerCallbacks::onDisconnect()
+    // Callback llamado cuando el cliente BLE se desconecta.
+    // Actualiza el estado, vuelve a iniciar la publicidad y registra el evento.
     void onDisconnect(NimBLEServer* pServer) {
         bluetoothConnected = false;
         logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "BLE", "%s", "BLE client Disconnected, Started Advertising");
@@ -68,6 +55,10 @@ class MyServerCallbacks : public NimBLEServerCallbacks {
 };
 
 class MyCallbacks : public NimBLECharacteristicCallbacks {
+    // MyCallbacks::onWrite()
+    // Callback llamado cuando la central BLE escribe datos en la característica RX.
+    // Lee el payload recibido, monta buffers KISS/TNC2 según la configuración y
+    // decide si marcar la trama para ser reenviada por LoRa.
     void onWrite(NimBLECharacteristic *pCharacteristic) {
         if (Config.bluetooth.useKISS) {   // KISS (AX.25)
             std::string receivedData = pCharacteristic->getValue();
@@ -101,11 +92,14 @@ class MyCallbacks : public NimBLECharacteristicCallbacks {
 
 
 namespace BLE_Utils {
-
+    // BLE_Utils::stop()
+    // Desinicializa el stack BLE (libera recursos y detiene servicios).
     void stop() {
         BLEDevice::deinit();
     }
-  
+    // BLE_Utils::setup()
+    // Inicializa el servidor BLE: crea servicio/características (KISS o TNC2),
+    // configura callbacks, empieza a anunciarse y registra el estado.
     void setup() {
         String BLEid = Config.bluetooth.deviceName;
         BLEDevice::init(BLEid.c_str()); 
@@ -136,7 +130,9 @@ namespace BLE_Utils {
             logger.log(logging::LoggerLevel::LOGGER_LEVEL_ERROR, "BLE", "Failed to create BLE service");
         }
     }
-
+    // BLE_Utils::sendToLoRa()
+    // Si hay una trama BLE lista para transmisión, valida reglas (p. ej. no reenviar
+    // tramas propias si está deshabilitado) y la envía por LoRa; muestra feedback en pantalla.
     void sendToLoRa() {
         if (!shouldSendBLEtoLoRa) return;
 
@@ -155,13 +151,17 @@ namespace BLE_Utils {
         BLEToLoRaPacket = "";
         shouldSendBLEtoLoRa = false;
     }
-
+    // BLE_Utils::txBLE(uint8_t)
+    // Envia un solo byte (o carácter) por la característica TX vía notify.
+    // Utilidad de bajo nivel usada por envíos TNC2.
     void txBLE(uint8_t p) {
         pCharacteristicTx->setValue(&p,1);
         pCharacteristicTx->notify();
         delay(3);
     }
-
+    // BLE_Utils::txToPhoneOverBLE()
+    // Envía una trama completa hacia el teléfono/central BLE. Si se usa KISS la
+    // trama se fragmenta en bloques (chunks) y se envía; si es TNC2 se envía byte a byte.
     void txToPhoneOverBLE(const String& frame) {
         if (Config.bluetooth.useKISS) {   // KISS (AX.25)
             const String kissEncodedFrame = KISS_Utils::encodeKISS(frame);
@@ -184,7 +184,9 @@ namespace BLE_Utils {
             txBLE('\n');
         }
     }
-
+    // BLE_Utils::sendToPhone()
+    // Interfaz pública para enviar una trama (String) hacia la central BLE si hay
+    // conexión; registra la operación y delega el envío a txToPhoneOverBLE.
     void sendToPhone(const String& packet) {
         if (!packet.isEmpty() && bluetoothConnected) {
             logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, "BLE Rx", "%s", packet.c_str());

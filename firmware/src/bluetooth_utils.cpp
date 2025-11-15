@@ -1,21 +1,3 @@
-/* Copyright (C) 2025 Ricardo Guzman - CA2RXU
- * 
- * This file is part of LoRa APRS Tracker.
- * 
- * LoRa APRS Tracker is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or 
- * (at your option) any later version.
- * 
- * LoRa APRS Tracker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with LoRa APRS Tracker. If not, see <https://www.gnu.org/licenses/>.
- */
-
 #include <TinyGPS++.h>
 #include <esp_bt.h>
 #include "bluetooth_utils.h"
@@ -39,6 +21,10 @@ namespace BLUETOOTH_Utils {
     bool shouldSendToLoRa = false;
     bool useKiss = Config.bluetooth.useKISS? true : false;
 
+    // setup()
+    // Inicializa el sistema Bluetooth: configura callbacks, define el nombre del dispositivo,
+    // activa Bluetooth Classic si corresponde y maneja fallos de inicialización.
+    // Si Bluetooth está desactivado en la configuración, apaga el controlador BT.
     void setup() {
         if (!bluetoothActive) {
             btStop();
@@ -63,7 +49,10 @@ namespace BLUETOOTH_Utils {
         }
         logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Bluetooth", "Bluetooth Classic init done!");
     }
-
+    // bluetoothCallback()
+    // Maneja los eventos del stack SPP de Bluetooth Classic: conexión de cliente,
+    // desconexión y otros estados. Actualiza el indicador global de conexión y
+    // genera registros de diagnóstico.
     void bluetoothCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
         if (event == ESP_SPP_SRV_OPEN_EVT) {
             logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Bluetooth", "Client connected !");
@@ -75,7 +64,10 @@ namespace BLUETOOTH_Utils {
             logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, "Bluetooth", "Status: %d", event);
         }
     }
-
+    // getData()
+    // Callback llamado cuando llega información Bluetooth. Procesa los bytes recibidos,
+    // detecta si son datos NMEA, datos KISS o tramas TNC2, decodifica si es necesario,
+    // determina si deben transmitirse por LoRa y registra el contenido para depuración.
     void getData(const uint8_t *buffer, size_t size) {
         if (size == 0) return;
         shouldSendToLoRa = false;
@@ -113,7 +105,9 @@ namespace BLUETOOTH_Utils {
             logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, "bluetooth", "Data received should be transmitted to RF => %s", serialReceived.c_str());
         }
     }
-
+    // sendToLoRa()
+    // Envía la última trama recibida desde Bluetooth hacia LoRa si fue marcada para transmisión.
+    // Muestra la información en pantalla y reinicia el estado de envío.
     void sendToLoRa() {
         if (!shouldSendToLoRa) return;
         logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, "BT TX", "%s", serialReceived.c_str());
@@ -121,7 +115,9 @@ namespace BLUETOOTH_Utils {
         LoRa_Utils::sendNewPacket(serialReceived);
         shouldSendToLoRa = false;
     }
-
+    // sendToPhone()
+    // Envía una trama recibida desde LoRa hacia el teléfono. Decide automáticamente si debe
+    // transmitirse como KISS o como TNC2 según el contexto actual (useKiss).
     void sendToPhone(const String& packet) {
         if (!packet.isEmpty()) {
             if (useKiss) {
