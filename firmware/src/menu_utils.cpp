@@ -67,418 +67,990 @@ uint8_t     lowBatteryPercent       = 21;
 
 namespace MENU_Utils {
 
+    // Devuelve el tipo de Bluetooth configurado
     const String checkBTType() {
-        if (Config.bluetooth.useBLE) {
-            return "BLE";
-        } else {
-            return "BT Classic";
+        if (Config.bluetooth.useBLE) {      // Si BLE está habilitado
+            return "BLE";                   // Se usa modo Bluetooth Low Energy
+        } else {                             // Si no está habilitado BLE
+            return "BT Clasico";            // Se usa Bluetooth clásico
         }
     }
 
+    // Convierte un booleano a ON/OFF para mostrarlo en el menú
     const String checkProcessActive(const bool process) {
-        if (process) {
-            return "ON";
-        } else {
-            return "OFF";
+        if (process) {                      // Si el proceso está activo
+            return "Encendido";
+        } else {                            // Si el proceso está inactivo
+            return "Apagado";
         }
     }
 
+    // Convierte el valor numérico del brillo a un texto legible
     const String screenBrightnessAsString(const uint8_t bright) {
-        #ifdef HAS_TFT
-            if (bright == 255) {
+        #ifdef HAS_TFT                       // Lógica especial si el dispositivo tiene pantalla TFT
+            if (bright == 255) {             // Brillo máximo
                 return "Max";
-            } else if (bright == 70) {
-                return "Low";
-            } else {
-                return "Mid";
+            } else if (bright == 70) {       // Brillo bajo predefinido para TFT
+                return "Bajo";
+            } else {                         // Cualquier otro valor → brillo medio
+                return "Medio";
             }
-        #else
-            if (bright == 255) {
+        #else                                // Dispositivos sin TFT (p.ej. OLED)
+            if (bright == 255) {             // Brillo máximo
                 return "Max";
-            } else if (bright == 1) {
-                return "Low";
-            } else {
-                return "Mid";
+            } else if (bright == 1) {        // Brillo bajo para pantallas sin TFT
+                return "Bajo";
+            } else {                         // Cualquier otro valor → brillo medio
+                return "Medio";
             }
         #endif
     }
 
     void showOnScreen() {
         String lastLine;
-        uint32_t lastMenuTime = millis() - menuTime;
+        uint32_t lastMenuTime = millis() - menuTime; // Tiempo transcurrido desde que se abrió el menú
+        // Si el menú actual NO es 0, 400, 410, 300 ni está dentro de 500–5100
+        // y han pasado más de 30 segundos sin interacción,
+        // entonces se reinicia el menú y se limpian los mensajes en edición.
         if (!(menuDisplay==0) && !(menuDisplay==400) && !(menuDisplay==410) && !(menuDisplay==300) && !(menuDisplay>=500 && menuDisplay<=5100) && lastMenuTime > 30*1000) {
-            menuDisplay     = 0;
-            messageCallsign = "";
-            messageText     = "";
+            menuDisplay     = 0;   // Regresar al menú principal
+            messageCallsign = "";  // Limpiar el CALLSIGN usado para escribir mensajes
+            messageText     = "";  // Limpiar el texto del mensaje
         }
-        if (keyDetected) {
-            lastLine = "<Back Up/Down Select>";
+        // Definir la última línea del display dependiendo si hay teclado detectado
+        if (keyDetected) {  
+            lastLine = "<Volver Arriba/Abajo Seleccionar>";  // Texto cuando se usa keypad
         } else {
-            lastLine = "1P=Down 2P=Back LP=Go";
+            lastLine = "1P=Down 2P=Back LP=Go";            // Texto cuando se usan botones físicos
         }
 
         #if defined(TTGO_T_DECK_PLUS) || defined(TTGO_T_DECK_GPS)
-            topHeader1      = currentBeacon->callsign;
-            const auto time_now = now();
-            topHeader1_1    = Utils::createDateString(time_now);
-            topHeader1_2    = Utils::createTimeString(time_now);
-            topHeader1_3    = "";
-            topHeader2      = String(gps.location.lat(), 4);
-            topHeader2      += " ";
-            topHeader2      += String(gps.location.lng(), 4);
+            topHeader1 = currentBeacon->callsign;  // Mostrar el CALLSIGN del beacon activo
 
+            const auto time_now = now();           // Obtener hora actual del RTC o sistema
+            topHeader1_1 = Utils::createDateString(time_now); // Fecha formateada (ej: 2025-11-14)
+            topHeader1_2 = Utils::createTimeString(time_now); // Hora formateada (ej: 18:05:00)
+            topHeader1_3 = "";                     // Campo actualmente no usado
+
+            // Construir la segunda línea con latitud y longitud a 4 decimales
+            topHeader2  = String(gps.location.lat(), 4);
+            topHeader2 += " ";
+            topHeader2 += String(gps.location.lng(), 4);
+
+            // Rellenar con espacios hasta alcanzar largo mínimo para alinear el texto
             for (int i = topHeader2.length(); i < 19; i++) {
                 topHeader2 += " ";
             }
-            if (gps.satellites.value() <= 9) topHeader2 += " ";
+
+            // Si satélites <= 9, agregar un espacio extra para mantener alineación
+            if (gps.satellites.value() <= 9)
+                topHeader2 += " ";
+
+            // Agregar número de satélites detectados
             topHeader2 += "SAT:";
             topHeader2 += String(gps.satellites.value());
-            if (gps.hdop.hdop() > 5) {
-                topHeader2 += "X";
+
+            // Añadir símbolo de calidad de señal basado en HDOP:
+            if (gps.hdop.hdop() > 5) {             // HDOP alta → mala precisión
+                topHeader2 += "X";                 // Indicador de baja calidad
             } else if (gps.hdop.hdop() > 2 && gps.hdop.hdop() < 5) {
-                topHeader2 += "-";
+                topHeader2 += "-";                 // Calidad media
             } else if (gps.hdop.hdop() <= 2) {
-                topHeader2 += "+";
+                topHeader2 += "+";                 // Excelente calidad de GPS
             }
         #endif
 
-        switch (menuDisplay) { // Graphic Menu is in here!!!!
-            case 1:     // 1. Messages
-                displayShow("<< MENU >>","  6.Extras", "> 1.Messages", "  2.Configuration", "  3.Reports", lastLine);
+        switch (menuDisplay) { // Menu Gráfico
+            case 1:     // 1. Messages  →  Menú principal de Mensajes
+                // Muestra el menú con la opción 1 (Mensajes) seleccionada.
+                // Las flechas > indican la opción activa, y las demás se muestran como navegación previa/siguiente.
+                displayShow("<< MENU >>",
+                            "  6.Extras",        // Opción anterior
+                            "> 1.Mensajes",      // Opción seleccionada
+                            "  2.Configuracion", // Siguiente opción
+                            "  3.Reportes",      // Segunda siguiente
+                            lastLine);           // Línea inferior dinámica (botones/ayuda)
                 break;
-            case 2:     // 2. Configuration
-                displayShow("<< MENU >>", "  1.Messages", "> 2.Configuration", "  3.Reports", "  4.Stations", lastLine);
+
+            case 2:     // 2. Configuration  →  Menú de Configuración
+                // Muestra el menú con Configuración como opción activa.
+                displayShow("<< MENU >>",
+                            "  1.Mensajes",       // Opción anterior
+                            "> 2.Configuracion",  // Opción actual/seleccionada
+                            "  3.Reportes",
+                            "  4.Estaciones",
+                            lastLine);
                 break;
-            case 3:     //3. Reports
-                displayShow("<< MENU >>", "  2.Configuration", "> 3.Reports", "  4.Stations", "  5.Winlink/Mail", lastLine);
+
+            case 3:     // 3. Reports  →  Menú de Reportes
+                // Muestra el menú con Reportes como activo.
+                displayShow("<< MENU >>",
+                            "  2.Configuracion",
+                            "> 3.Reportes",
+                            "  4.Estaciones",
+                            "  5.Winlink/Mail",
+                            lastLine);
                 break;
-            case 4:     //4. Stations
-                displayShow("<< MENU >>", "  3.Reports", "> 4.Stations", "  5.Winlink/Mail", "  6.Extras", lastLine);
+
+            case 4:     // 4. Estaciones  →  Menú de Estaciones disponibles
+                // Muestra el menú con Estaciones como seleccionado.
+                displayShow("<< MENU >>",
+                            "  3.Reportes",
+                            "> 4.Estaciones",
+                            "  5.Winlink/Mail",
+                            "  6.Extras",
+                            lastLine);
                 break;
-            case 5:     //5. Winlink
-                displayShow("<< MENU >>", "  4.Stations", "> 5.Winlink/Mail", "  6.Extras", "  1.Messages", lastLine);
+
+            case 5:     // 5. Winlink → Cliente Winlink Email
+                // Menú Winlink/Mail como activo.
+                displayShow("<< MENU >>",
+                            "  4.Estaciones",
+                            "> 5.Winlink/Mail",
+                            "  6.Extras",
+                            "  1.Mensajes",
+                            lastLine);
                 break;
-            case 6:     //6. Extras
-                displayShow("<< MENU >>", "  5.Winlink/Mail", "> 6.Extras", "  1.Messages", "  2.Configuration", lastLine);
+
+            case 6:     // 6. Extras → Herramientas adicionales
+                // Muestra el menú con Extras seleccionado.
+                displayShow("<< MENU >>",
+                            "  5.Winlink/Mail",
+                            "> 6.Extras",
+                            "  1.Mensajes",
+                            "  2.Configuracion",
+                            lastLine);
                 break;
 
 //////////
-            case 10:    // 1.Messages ---> Messages Read
-                displayShow(" MESSAGES>", "> Read (" + String(MSG_Utils::getNumAPRSMessages()) + ")", "  Write", "  Delete", "  APRSThursday", lastLine);
+            case 10:    // 1.Mensajes ---> Leer Mensajes (Messages Read)
+                // Muestra el submenú de Mensajes con la opción "Leer" seleccionada.
+                // Se indica también la cantidad de mensajes APRS disponibles.
+                displayShow(" MENSAJES>",                           // Título del submenú
+                            "> Leer (" + String(MSG_Utils::getNumAPRSMessages()) + ")", // Opción activa
+                            "  Escribir",                           // Siguiente opción
+                            "  Borrar",                             // Opción adicional
+                            "  APRSThursday",                       // Función especial
+                            lastLine);                              // Línea inferior con ayuda de controles
                 break;
-            case 100:   // 1.Messages ---> Messages Read ---> Display Received/Saved APRS Messages
+
+
+            case 100:   // 1.Mensajes ---> Leer Mensajes ---> Mostrar mensaje APRS recibido/guardado
                 {
-                    String msgSender    = loadedAPRSMessages[messagesIterator].substring(0, loadedAPRSMessages[messagesIterator].indexOf(","));
-                    String msgText      = loadedAPRSMessages[messagesIterator].substring(loadedAPRSMessages[messagesIterator].indexOf(",") + 1);
+                    // Extrae el remitente: todo lo que está antes de la coma
+                    String msgSender = loadedAPRSMessages[messagesIterator]
+                                            .substring(0, loadedAPRSMessages[messagesIterator].indexOf(","));
+
+                    // Extrae el texto del mensaje: todo lo que está después de la coma
+                    String msgText = loadedAPRSMessages[messagesIterator]
+                                            .substring(loadedAPRSMessages[messagesIterator].indexOf(",") + 1);
 
                     #ifdef HAS_TFT
                         #if defined(HELTEC_WIRELESS_TRACKER)
-                            displayShow(" MSG APRS>", "From --> " + msgSender, msgText,"                 Next=Down", "", "");
+                            // Versión para pantalla TFT del Heltec Tracker
+                            displayShow(" MSJ APRS>",               // Título: Mensaje APRS
+                                        "De --> " + msgSender,      // Remitente
+                                        msgText,                    // Texto del mensaje
+                                        "                 Sig=Abajo", // Indicador: "Siguiente" con tecla abajo
+                                        "",
+                                        "");
                         #else   // T-Deck
-                            displayShow("MSG APRS>", "From --> " + msgSender, msgText,"             Next=Down", "", "");
+                            // Versión para pantalla TFT del T-Deck
+                            displayShow("MSJ APRS>", 
+                                        "De --> " + msgSender,
+                                        msgText,
+                                        "             Sig=Abajo",
+                                        "",
+                                        "");
                         #endif
                     #else
-                        displayShow(" MSG APRS>", "From --> " + msgSender, msgText, "", "", "           Next=Down");
+                        // Versión para pantallas monocromáticas (OLED típicas)
+                        displayShow(" MSJ APRS>",
+                                    "De --> " + msgSender,
+                                    msgText,
+                                    "",
+                                    "",
+                                    "           Sig=Abajo");       // Indicador en la última línea
                     #endif
                 }
                 break;
-            case 11:    // 1.Messages ---> Messages Write
-                displayShow(" MESSAGES>", "  Read (" + String(MSG_Utils::getNumAPRSMessages()) + ")", "> Write", "  Delete", "  APRSThursday", lastLine);
+            case 11:    // 1.Menú para escribir mensajes
+                displayShow(" MESSAGES>", 
+                            "  Leer (" + String(MSG_Utils::getNumAPRSMessages()) + ")", 
+                            "> Escribir", 
+                            "  Borrar", 
+                            "  APRSThursday", 
+                            lastLine);
                 break;
-            case 110:   // 1.Messages ---> Messages Write ---> Write
-                if (keyDetected || keyboardConnected) {
+
+            case 110:   // 1.Pantalla para ingresar el callsign del mensaje
+                if (keyDetected || keyboardConnected) {   // Si se detecta teclado físico o está conectado
+
                     #ifdef HAS_TFT
                         #if defined(HELTEC_WIRELESS_TRACKER)
-                            displayShow("WRITE MSG>", "", "CALLSIGN = " + String(messageCallsign), "", "", "<Back               Enter>");
-                        #else   //  T-DECK
-                            displayShow("WRITE MSG>", "", "CALLSIGN = " + String(messageCallsign), "", "", "<Back           Enter>");
+                            // Pantalla para escribir el mensaje en Heltec Wireless Tracker
+                            displayShow("ESCRIBIR MSJ>", 
+                                        "", 
+                                        "CALLSIGN = " + String(messageCallsign), 
+                                        "", 
+                                        "", 
+                                        "<Volver           Enter>");
+                        #else   // T-DECK
+                            // Pantalla para escribir en T-Deck (alineación diferente)
+                            displayShow("ESCRIBIR MSJ>", 
+                                        "", 
+                                        "CALLSIGN = " + String(messageCallsign), 
+                                        "", 
+                                        "", 
+                                        "<Volver        Enter>");
                         #endif
                     #else
-                        displayShow("WRITE MSG>", "", "CALLSIGN = " + String(messageCallsign), "", "", "<Back          Enter>");
+                        // Pantalla en dispositivo sin TFT
+                        displayShow("ESCRIBIR MSJ>", 
+                                    "", 
+                                    "CALLSIGN = " + String(messageCallsign), 
+                                    "", 
+                                    "", 
+                                    "<Volver        Enter>");
                     #endif
+
                 } else {
-                    displayShow("WRITE MSG>", "", "No Keyboard Detected", "Can't write Message", "", "1P = Back");           
-                }     
+                    // Caso sin teclado: no se puede escribir mensaje
+                    displayShow("ESCRIBIR MSJ>", 
+                                "", 
+                                "Sin Teclado", 
+                                "No se puede escribir", 
+                                "", 
+                                "1P = Volver");           
+                }
                 break;
             case 111:
+                // Caso: edición/composición del mensaje (antes de enviar).
+                // Se permite hasta 67 caracteres; si supera, se mostrará aviso de mensaje demasiado largo.
                 if (messageText.length() <= 67) {
+
                     #ifdef HAS_TFT
                         #if defined(HELTEC_WIRELESS_TRACKER)
+                            // Versión para Heltec con pantalla TFT
+                            // Si la longitud es menor que 10, se antepone un '0' en el contador para mantener alineación "(0N)"
                             if (messageText.length() < 10) {
-                                displayShow("WRITE MSG>", "CALLSIGN -> " + messageCallsign, "MSG -> " + messageText, "<Back      (0" + String(messageText.length()) + ")     Enter>", "", "");
+                                displayShow("ESCRIBIR MSJ>",                                   // Título en pantalla
+                                            "CALLSIGN -> " + messageCallsign,                // Línea: callsign/CALLSIGN
+                                            "MSJ -> " + messageText,                           // Línea: texto del mensaje
+                                            "<Volver      (0" + String(messageText.length()) + ")     Enter>", // Hint con contador formateado
+                                            "",
+                                            "");
                             } else {
-                                displayShow("WRITE MSG>", "CALLSIGN -> " + messageCallsign, "MSG -> " + messageText, "<Back      (" + String(messageText.length()) + ")     Enter>", "", "");
+                                // Longitud >= 10, mostrar contador sin cero inicial
+                                displayShow("ESCRIBIR MSJ>",
+                                            "CALLSIGN -> " + messageCallsign,
+                                            "MSJ -> " + messageText,
+                                            "<Volver      (" + String(messageText.length()) + ")     Enter>",
+                                            "",
+                                            "");
                             }
                         #else   // T-Deck
+                            // Versión para T-Deck (alineación distinta por ancho del display)
                             if (messageText.length() < 10) {
-                                displayShow("WRITE MSG>", "CALLSIGN -> " + messageCallsign, "MSG -> " + messageText, "<Back    (0" + String(messageText.length()) + ")   Enter>", "", "");
+                                displayShow("ESCRIBIR MSJ>",
+                                            "CALLSIGN -> " + messageCallsign,
+                                            "MSJ -> " + messageText,
+                                            "<Volver    (0" + String(messageText.length()) + ")   Enter>",
+                                            "",
+                                            "");
                             } else {
-                                displayShow("WRITE MSG>", "CALLSIGN -> " + messageCallsign, "MSG -> " + messageText, "<Back    (" + String(messageText.length()) + ")   Enter>", "", "");
+                                displayShow("ESCRIBIR MSJ>",
+                                            "CALLSIGN -> " + messageCallsign,
+                                            "MSJ -> " + messageText,
+                                            "<Volver    (" + String(messageText.length()) + ")   Enter>",
+                                            "",
+                                            "");
                             }
                         #endif
                     #else
+                        // Versión para dispositivos sin TFT (p. ej. OLED monocromo)
                         if (messageText.length() < 10) {
-                            displayShow("WRITE MSG>", "CALLSIGN -> " + messageCallsign, "MSG -> " + messageText, "", "", "<Back   (0" + String(messageText.length()) + ")   Enter>");
+                            displayShow("ESCRIBIR MSJ>",
+                                        "CALLSIGN -> " + messageCallsign,
+                                        "MSJ -> " + messageText,
+                                        "",
+                                        "",
+                                        "<Volver   (0" + String(messageText.length()) + ")   Enter>"); // Hint en la última línea
                         } else {
-                            displayShow("WRITE MSG>", "CALLSIGN -> " + messageCallsign, "MSG -> " + messageText, "", "", "<Back   (" + String(messageText.length()) + ")   Enter>");
+                            displayShow("ESCRIBIR MSJ>",
+                                        "CALLSIGN -> " + messageCallsign,
+                                        "MSJ -> " + messageText,
+                                        "",
+                                        "",
+                                        "<Volver   (" + String(messageText.length()) + ")   Enter>");
                         }
                     #endif
+
                 } else {
+                    // Mensaje demasiado largo (> 67 caracteres) -> mostrar advertencia y el texto que excede
                     #ifdef HAS_TFT
                         #if defined(HELTEC_WIRELESS_TRACKER)
-                            displayShow("WRITE MSG>", "  --- MSG TOO LONG! ---", " -> " + messageText, "<Back   (" + String(messageText.length()) + ")",  "", "");
+                            // Heltec TFT: aviso con alineación específica
+                            displayShow("ESCRIBIR MSJ>",
+                                        "  --- MSJ MUY LARGO! ---",   // Aviso breve traducido
+                                        " -> " + messageText,         // Mostrar el texto (posible truncamiento por display)
+                                        "<Volver   (" + String(messageText.length()) + ")", // Contador grande
+                                        "",
+                                        "");
                         #else   // T-Deck
-                            displayShow("WRITE MSG>", "  --- MSG TOO LONG! ---", " -> " + messageText, "<Back   (" + String(messageText.length()) + ")", "", "");
+                            // T-Deck TFT
+                            displayShow("ESCRIBIR MSJ>",
+                                        "  --- MSJ MUY LARGO! ---",
+                                        " -> " + messageText,
+                                        "<Volver   (" + String(messageText.length()) + ")",
+                                        "",
+                                        "");
                         #endif
                     #else
-                        displayShow("WRITE MSG>", "--- MSG TOO LONG! ---", " -> " + messageText, "", "", "<Back   (" + String(messageText.length()) + ")");
+                        // Sin TFT
+                        displayShow("ESCRIBIR MSJ>",
+                                    "--- MSJ MUY LARGO! ---",
+                                    " -> " + messageText,
+                                    "",
+                                    "",
+                                    "<Volver   (" + String(messageText.length()) + ")"); // Hint con longitud
                     #endif
                 }
                 break;
-            case 12:    // 1.Messages ---> Messages Delete
-                displayShow(" MESSAGES>", "  Read (" + String(MSG_Utils::getNumAPRSMessages()) + ")", "  Write", "> Delete", "  APRSThursday", lastLine);
+            case 12:    // Submenú: opción "Borrar" seleccionada, mostrando también cantidad de mensajes APRS
+            displayShow(" MENSAJES>",
+                        "  Leer (" + String(MSG_Utils::getNumAPRSMessages()) + ")",
+                        "  Escribir",
+                        "> Borrar",
+                        "  APRSThursday",
+                        lastLine);
+            break;
+            case 120:   // Confirmación para borrar todos los mensajes APRS
+                displayShow("BORRAR MSJ",                // Título del diálogo de borrado
+                            "",
+                            "  ¿BORRAR MSJ APRS?",      // Pregunta al usuario
+                            "",
+                            "",
+                            "Confirmar = LP o '>'");    // Indicación de cómo confirmar (LP = Long Press)
                 break;
-            case 120:   // 1.Messages ---> Messages Delete ---> Delete: ALL
-                displayShow("DELETE MSG", "", "  DELETE APRS MSG?", "", "", " Confirm = LP or '>'");
+
+            case 13:    // Submenú APRS Thursday (opción seleccionada)
+                displayShow(" MENSAJES>",
+                            "  Leer (" + String(MSG_Utils::getNumAPRSMessages()) + ")",
+                            "  Escribir",
+                            "  Borrar",
+                            "> APRSThursday",
+                            lastLine);
                 break;
-            case 13:    // 1.Messages ---> APRSThursday
-                displayShow(" MESSAGES>", "  Read (" + String(MSG_Utils::getNumAPRSMessages()) + ")", "  Write", "  Delete", "> APRSThursday", lastLine);
-                break;
-            case 130:   // 1.Messages ---> APRSThursday ---> Delete: ALL
-                displayShow(" APRS Thu.", "> Check In", "  Join", "  Unsubscribe", "  KeepSubscribed+12h", lastLine);
+
+            case 130:   // Menú con acciones relacionadas (Check In, Join, Unsubscribe, KeepSubscribed+12h)
+                displayShow(" APRS Jue.",
+                            "> Registrarse",         // Check In
+                            "  Unirse",              // Join
+                            "  Darse de baja",       // Unsubscribe
+                            "  Mantener+12h",        // Mantener suscripción por +12 horas
+                            lastLine);
                 break;
             case 1300:
+                // Escritura del mensaje para APRS Thursday.
+                // Se valida que el mensaje no supere los 67 caracteres permitidos.
                 if (messageText.length() <= 67) {
+
                     #ifdef HAS_TFT
                         #if defined(HELTEC_WIRELESS_TRACKER)
+                            // Versión para dispositivos HELTEC con pantalla TFT
                             if (messageText.length() < 10) {
-                                displayShow("WRITE MSG>", "    - APRSThursday -", "MSG -> " + messageText, "<Back      (0" + String(messageText.length()) + ")     Enter>", "", "");
+                                // Mostrar contador con cero inicial para mantener el formato
+                                displayShow("ESCRIBIR MSJ>",                   // Título
+                                            "    - APRSThursday -",              // Encabezado de la función 
+                                            "MSJ -> " + messageText,           // Contenido del mensaje
+                                            "<Volver      (0" + String(messageText.length()) + ")     Enter>", // Indicación
+                                            "",
+                                            "");
                             } else {
-                                displayShow("WRITE MSG>", "    - APRSThursday -", "MSG -> " + messageText, "<Back      (" + String(messageText.length()) + ")     Enter>", "", "");
+                                // Contador sin cero inicial (>=10 caracteres)
+                                displayShow("ESCRIBIR MSJ>",
+                                            "    - APRSThursday -",
+                                            "MSJ -> " + messageText,
+                                            "<Volver      (" + String(messageText.length()) + ")     Enter>",
+                                            "",
+                                            "");
                             }
+
                         #else   // T-Deck
+                            // Versión para T-Deck TFT (alineación distinta)
                             if (messageText.length() < 10) {
-                                displayShow("WRITE MSG>", "    - APRSThursday -", "MSG -> " + messageText, "<Back    (0" + String(messageText.length()) + ")   Enter>", "", "");
+                                displayShow("ESCRIBIR MSJ>",
+                                            "    - APRSThursday -",
+                                            "MSJ -> " + messageText,
+                                            "<Volver    (0" + String(messageText.length()) + ")   Enter>",
+                                            "",
+                                            "");
                             } else {
-                                displayShow("WRITE MSG>", "    - APRSThursday -", "MSG -> " + messageText, "<Back    (" + String(messageText.length()) + ")   Enter>", "", "");
-                            }                            
+                                displayShow("ESCRIBIR MSJ>",
+                                            "    - APRSThursday -",
+                                            "MSJ -> " + messageText,
+                                            "<Volver    (" + String(messageText.length()) + ")   Enter>",
+                                            "",
+                                            "");
+                            }
                         #endif
+
                     #else
+                        // Versión para pantallas sin TFT (OLED)
                         if (messageText.length() < 10) {
-                            displayShow("WRITE MSG>", "  - APRSThursday -", "MSG -> " + messageText, "", "", "<Back   (0" + String(messageText.length()) + ")   Enter>");
+                            displayShow("ESCRIBIR MSJ>",
+                                        "  - APRSThursday -",
+                                        "MSJ -> " + messageText,
+                                        "",
+                                        "",
+                                        "<Volver   (0" + String(messageText.length()) + ")   Enter>");
                         } else {
-                            displayShow("WRITE MSG>", "  - APRSThursday -", "MSG -> " + messageText, "", "", "<Back   (" + String(messageText.length()) + ")   Enter>");
+                            displayShow("ESCRIBIR MSJ>",
+                                        "  - APRSThursday -",
+                                        "MSJ -> " + messageText,
+                                        "",
+                                        "",
+                                        "<Volver   (" + String(messageText.length()) + ")   Enter>");
                         }
                     #endif                    
+
                 } else {
+                    // El mensaje excede los 67 caracteres → mostrar advertencia de longitud
                     #ifdef HAS_TFT
                         #if defined(HELTEC_WIRELESS_TRACKER)
-                            displayShow("WRITE MSG>", "  --- MSG TOO LONG! ---", " -> " + messageText, "<Back   (" + String(messageText.length()) + ")",  "", "");
+                            displayShow("ESCRIBIR MSJ>",                       // Título
+                                        "  --- MSJ MUY LARGO! ---",            // Advertencia traducida
+                                        " -> " + messageText,                  // Mostrar el mensaje completo
+                                        "<Volver   (" + String(messageText.length()) + ")", // Contador
+                                        "",
+                                        "");
                         #else   // T-Deck
-                            displayShow("WRITE MSG>", "  --- MSG TOO LONG! ---", " -> " + messageText, "<Back   (" + String(messageText.length()) + ")", "", "");
+                            displayShow("ESCRIBIR MSJ>",
+                                        "  --- MSJ MUY LARGO! ---",
+                                        " -> " + messageText,
+                                        "<Volver   (" + String(messageText.length()) + ")",
+                                        "",
+                                        "");
                         #endif
                     #else
-                        displayShow("WRITE MSG>", "--- MSG TOO LONG! ---", " -> " + messageText, "", "", "<Back   (" + String(messageText.length()) + ")");
+                        // Pantallas sin TFT
+                        displayShow("ESCRIBIR MSJ>",
+                                    "--- MSJ MUY LARGO! ---",
+                                    " -> " + messageText,
+                                    "",
+                                    "",
+                                    "<Volver   (" + String(messageText.length()) + ")");
                     #endif                    
                 }
                 break;
-            case 131:   // 1.Messages ---> APRSThursday ---> Delete: ALL
-                displayShow(" APRS Thu.", "  Check In", "> Join", "  Unsubscribe", "  KeepSubscribed+12h", lastLine);
+
+            case 131:   // Menú de APRSThursday con la opción "Join" seleccionada
+                displayShow(" APRS Thu.",          // Encabezado del menú
+                            "  Check In",          // Registrarse
+                            "> Unirse",            // Join (seleccionada)
+                            "  Cancelar",          // Unsubscribe
+                            "  Mantener+12h",      // KeepSubscribed+12h
+                            lastLine);
                 break;
+
             case 1310:
+                // Pantalla para escribir mensaje de APRSJueves (Join)
+                // Se valida que el mensaje tenga máximo 67 caracteres
                 if (messageText.length() <= 67) {
+
                     #ifdef HAS_TFT
                         #if defined(HELTEC_WIRELESS_TRACKER)
+                            // HELTEC con pantalla TFT
                             if (messageText.length() < 10) {
-                                displayShow("WRITE MSG>", "    - APRSThursday -", "MSG -> " + messageText, "<Back      (0" + String(messageText.length()) + ")     Enter>", "", "");
+                                displayShow("ESCRIBIR MSJ>",
+                                            "    - APRSThursday -",
+                                            "MSJ -> " + messageText,
+                                            "<Volver      (0" + String(messageText.length()) + ")     Enter>",
+                                            "",
+                                            "");
                             } else {
-                                displayShow("WRITE MSG>", "    - APRSThursday -", "MSG -> " + messageText, "<Back      (" + String(messageText.length()) + ")     Enter>", "", "");
+                                displayShow("ESCRIBIR MSJ>",
+                                            "    - APRSThursday -",
+                                            "MSJ -> " + messageText,
+                                            "<Volver      (" + String(messageText.length()) + ")     Enter>",
+                                            "",
+                                            "");
                             }
-                        #else   // T-Deck
+
+                        #else   // T-Deck TFT
                             if (messageText.length() < 10) {
-                                displayShow("WRITE MSG>", "    - APRSThursday -", "MSG -> " + messageText, "<Back    (0" + String(messageText.length()) + ")   Enter>", "", "");
+                                displayShow("ESCRIBIR MSJ>",
+                                            "    - APRSThursday -",
+                                            "MSJ -> " + messageText,
+                                            "<Volver    (0" + String(messageText.length()) + ")   Enter>",
+                                            "",
+                                            "");
                             } else {
-                                displayShow("WRITE MSG>", "    - APRSThursday -", "MSG -> " + messageText, "<Back    (" + String(messageText.length()) + ")   Enter>", "", "");
+                                displayShow("ESCRIBIR MSJ>",
+                                            "    - APRSThursday -",
+                                            "MSJ -> " + messageText,
+                                            "<Volver    (" + String(messageText.length()) + ")   Enter>",
+                                            "",
+                                            "");
                             }
                         #endif
+
                     #else
+                        // Pantallas sin TFT (OLED)
                         if (messageText.length() < 10) {
-                            displayShow("WRITE MSG>", "  - APRSThursday -", "MSG -> " + messageText, "", "", "<Back   (0" + String(messageText.length()) + ")   Enter>");
+                            displayShow("ESCRIBIR MSJ>",
+                                        "  - APRSThursday -",
+                                        "MSJ -> " + messageText,
+                                        "",
+                                        "",
+                                        "<Volver   (0" + String(messageText.length()) + ")   Enter>");
                         } else {
-                            displayShow("WRITE MSG>", "  - APRSThursday -", "MSG -> " + messageText, "", "", "<Back   (" + String(messageText.length()) + ")   Enter>");
+                            displayShow("ESCRIBIR MSJ>",
+                                        "  - APRSThursday -",
+                                        "MSJ -> " + messageText,
+                                        "",
+                                        "",
+                                        "<Volver   (" + String(messageText.length()) + ")   Enter>");
                         }
-                    #endif                    
+                    #endif
+
                 } else {
+                    // Mensaje demasiado largo (más de 67 caracteres)
                     #ifdef HAS_TFT
                         #if defined(HELTEC_WIRELESS_TRACKER)
-                            displayShow("WRITE MSG>", "  --- MSG TOO LONG! ---", " -> " + messageText, "<Back   (" + String(messageText.length()) + ")",  "", "");
-                        #else   // T-Deck
-                            displayShow("WRITE MSG>", "  --- MSG TOO LONG! ---", " -> " + messageText, "<Back   (" + String(messageText.length()) + ")", "", "");
+                            displayShow("ESCRIBIR MSJ>",
+                                        "  --- MSJ MUY LARGO! ---",
+                                        " -> " + messageText,
+                                        "<Volver   (" + String(messageText.length()) + ")",
+                                        "",
+                                        "");
+                        #else   // T-Deck TFT
+                            displayShow("ESCRIBIR MSJ>",
+                                        "  --- MSJ MUY LARGO! ---",
+                                        " -> " + messageText,
+                                        "<Volver   (" + String(messageText.length()) + ")",
+                                        "",
+                                        "");
                         #endif
                     #else
-                        displayShow("WRITE MSG>", "--- MSG TOO LONG! ---", " -> " + messageText, "", "", "<Back   (" + String(messageText.length()) + ")");
+                        // OLED
+                        displayShow("ESCRIBIR MSJ>",
+                                    "--- MSJ MUY LARGO! ---",
+                                    " -> " + messageText,
+                                    "",
+                                    "",
+                                    "<Volver   (" + String(messageText.length()) + ")");
                     #endif
                 }
                 break;
-            case 132:   // 1.Messages ---> APRSThursday ---> Delete: ALL
-                displayShow(" APRS Thu.", "  Check In", "  Join", "> Unsubscribe", "  KeepSubscribed+12h", lastLine);
+
+            case 132:   // 1.Messages ---> APRSJueves ---> Cancelar suscripción
+                displayShow(" APRS Thu.",
+                            "  Check In",
+                            "  Unirse",
+                            "> Cancelar",          // Unsubscribe seleccionado
+                            "  Mantener+12h",
+                            lastLine);
                 break;
-            case 133:   // 1.Messages ---> APRSThursday ---> Delete: ALL
-                displayShow(" APRS Thu.", "  Check In", "  Join", "  Unsubscribe", "> KeepSubscribed+12h", lastLine);
+
+            case 133:   // 1.Messages ---> APRSJueves ---> Mantener suscripción por 12 h
+                displayShow(" APRS Thu.",
+                            "  Check In",
+                            "  Unirse",
+                            "  Cancelar",
+                            "> Mantener+12h",      // KeepSubscribed+12h seleccionado
+                            lastLine);
                 break;
 
 //////////            
             case 20:    // 2.Configuration ---> Callsign
-                displayShow(" CONFIG>", "  Power Off", "> Change Callsign ", "  Change Frequency", "  Display",lastLine);
+                // Submenú de Configuración con la opción "Cambiar Callsign" seleccionada.
+                displayShow(" CONFIG>",                     // Encabezado del menú de configuración
+                            "  Apagar",                     // Opción anterior: Power Off
+                            "> Cambiar Callsign ",        // Opción seleccionada: Change Callsign
+                            "  Cambiar Frecuencia",         // Siguiente opción: Change Frequency
+                            "  Pantalla",                   // Segunda siguiente: Display
+                            lastLine);                      // Línea inferior dinámica (hints)
                 break;
+
             case 21:    // 2.Configuration ---> Change Freq
-                displayShow(" CONFIG>", "  Change Callsign ", "> Change Frequency", "  Display", "  " + checkBTType() + " (" + checkProcessActive(bluetoothActive) + ")",lastLine);
+                // Submenú con "Change Frequency" seleccionado; muestra también estado del Bluetooth
+                displayShow(" CONFIG>",
+                            "  Cambiar Callsign ", 
+                            "> Cambiar Frecuencia",
+                            "  Pantalla",
+                            "  " + checkBTType() + " (" + checkProcessActive(bluetoothActive) + ")", // p.ej. "BLE (ON)"
+                            lastLine);
                 break;
+
             case 22:    // 2.Configuration ---> Display
-                displayShow(" CONFIG>", "  Change Frequency", "> Display", "  " + checkBTType() + " (" + checkProcessActive(bluetoothActive) + ")", "  Status",lastLine);
+                // Submenú de Pantalla; la penúltima línea muestra tipo/estado de Bluetooth
+                displayShow(" CONFIG>",
+                            "  Cambiar Frecuencia",
+                            "> Pantalla",
+                            "  " + checkBTType() + " (" + checkProcessActive(bluetoothActive) + ")",
+                            "  Estado",   // Status
+                            lastLine);
                 break;
+
             case 23:    // 2.Configuration ---> Bluetooth
-                displayShow(" CONFIG>", "  Display",  "> " + checkBTType() + " (" + checkProcessActive(bluetoothActive) + ")", "  Status", "  Notifications", lastLine);
+                // Submenú del Bluetooth: muestra tipo/estado como opción seleccionable
+                displayShow(" CONFIG>",
+                            "  Pantalla",
+                            "> " + checkBTType() + " (" + checkProcessActive(bluetoothActive) + ")", // opción activa: p.ej. "BT Classic (OFF)"
+                            "  Estado",
+                            "  Notificaciones", // Notifications
+                            lastLine);
                 break;
+
             case 24:    // 2.Configuration ---> Status
-                displayShow(" CONFIG>", "  " + checkBTType() + " (" + checkProcessActive(bluetoothActive) + ")", "> Status","  Notifications", "  Reboot",lastLine);
+                // Submenú Estado (Status) con opciones relacionadas
+                displayShow(" CONFIG>",
+                            "  " + checkBTType() + " (" + checkProcessActive(bluetoothActive) + ")", // Mostrar tipo/estado BT
+                            "> Estado",
+                            "  Notificaciones",
+                            "  Reiniciar", // Reboot
+                            lastLine);
                 break;
+
             case 25:    // 2.Configuration ---> Notifications
-                displayShow(" CONFIG>", "  Status", "> Notifications", "  Reboot", "  Power Off",lastLine);
+                // Submenú Notificaciones seleccionado
+                displayShow(" CONFIG>",
+                            "  Estado",
+                            "> Notificaciones",
+                            "  Reiniciar",
+                            "  Apagar",  // Power Off
+                            lastLine);
                 break;
+
             case 26:    // 2.Configuration ---> Reboot
-                displayShow(" CONFIG>", "  Notifications", "> Reboot", "  Power Off", "  Change Callsign",lastLine);
+                // Submenú Reiniciar (Reboot) con confirmaciones y navegación
+                displayShow(" CONFIG>",
+                            "  Notificaciones",
+                            "> Reiniciar",
+                            "  Apagar",
+                            "  Cambiar Callsign",
+                            lastLine);
                 break;
+
             case 27:    // 2.Configuration ---> Power Off
-                displayShow(" CONFIG>", "  Reboot", "> Power Off", "  Change Callsign", "  Change Frequency",lastLine);
+                // Submenú Apagar (Power Off)
+                displayShow(" CONFIG>",
+                            "  Reiniciar",
+                            "> Apagar",
+                            "  Cambiar Callsign",
+                            "  Cambiar Frecuencia",
+                            lastLine);
                 break;
 
 
             case 200:   // 2.Configuration ---> Change Callsign
-                displayShow(" CALLSIGN>", "","  Confirm Change?","","","<Back         Select>");
+                // Menú de confirmación para cambiar el indicativo
+                displayShow(" INDICATIVO>",      // Encabezado: Callsign
+                            "",                  
+                            "  ¿Confirmar cambio?",   // Confirm Change?
+                            "", 
+                            "",
+                            "<Atrás        Seleccionar>");  // Back / Select
                 break;
 
             case 210:   // 2.Configuration ---> Change Frequency
+                // Determina el mensaje de advertencia según la región LoRa actual
                 switch (loraIndex) {
                     case 0: freqChangeWarning = "      Eu --> PL"; break;
                     case 1: freqChangeWarning = "      PL --> UK"; break;
                     case 2: freqChangeWarning = "      UK --> Eu"; break;
                 }
-                displayShow("LORA FREQ>", "","   Confirm Change?", freqChangeWarning, "", "<Back         Select>");
+
+                // Pantalla de confirmación para cambiar la frecuencia LoRa
+                displayShow("FREC LORA>",          // LORA FREQ>
+                            "",
+                            "  ¿Confirmar cambio?",  // Confirm Change?
+                            freqChangeWarning,       // Mensaje dinámico de región
+                            "",
+                            "<Atrás        Seleccionar>");
                 break;
 
             case 220:   // 2.Configuration ---> Display ---> ECO Mode
-                displayShow(" DISPLAY>", "", "> ECO Mode    (" + checkProcessActive(displayEcoMode) + ")", "  Brightness  (" + screenBrightnessAsString(screenBrightness) + ")","",lastLine);
+                // Menú de Display con ECO Mode seleccionado
+                displayShow(" PANTALLA>",  
+                            "",
+                            "> Modo ECO   (" + checkProcessActive(displayEcoMode) + ")",  // ON / OFF
+                            "  Brillo     (" + screenBrightnessAsString(screenBrightness) + ")", // Low/Mid/Max
+                            "",
+                            lastLine);
                 break;
 
             case 221:   // 2.Configuration ---> Display ---> Brightness
-                displayShow(" DISPLAY>", "", "  ECO Mode    (" + checkProcessActive(displayEcoMode) + ")", "> Brightness  (" + screenBrightnessAsString(screenBrightness) + ")","",lastLine);
+                // Menú Display con Brightness seleccionado
+                displayShow(" PANTALLA>",
+                            "",
+                            "  Modo ECO   (" + checkProcessActive(displayEcoMode) + ")",
+                            "> Brillo     (" + screenBrightnessAsString(screenBrightness) + ")",
+                            "",
+                            lastLine);
                 break;
-            case 2210:   // 2.Configuration ---> Display ---> Brightness: MIN
-                displayShow("BRIGHTNESS", "", "> Low", "  Mid","  Max",lastLine);
+
+            case 2210:   // Display ---> Brightness: MIN
+                displayShow(" BRILLO",      // BRIGHTNESS
+                            "",
+                            "> Bajo",       // Low
+                            "  Medio",      // Mid
+                            "  Máximo",     // Max
+                            lastLine);
                 break;
-            case 2211:   // 2.Configuration ---> Display ---> Brightness: MID
-                displayShow("BRIGHTNESS", "", "  Low", "> Mid","  Max",lastLine);
+
+            case 2211:   // Display ---> Brightness: MID
+                displayShow(" BRILLO",
+                            "",
+                            "  Bajo",
+                            "> Medio",
+                            "  Máximo",
+                            lastLine);
                 break;
-            case 2212:   // 2.Configuration ---> Display ---> Brightness: MAX
-                displayShow("BRIGHTNESS", "", "  Low", "  Mid","> Max",lastLine);
+
+            case 2212:   // Display ---> Brightness: MAX
+                displayShow(" BRILLO",
+                            "",
+                            "  Bajo",
+                            "  Medio",
+                            "> Máximo",
+                            lastLine);
                 break;
 
             case 230:
+                // Alterna el estado del Bluetooth y muestra notificación
                 if (bluetoothActive) {
                     bluetoothActive = false;
-                    displayShow("BLUETOOTH>", "", " Bluetooth --> OFF", 1000);
+                    displayShow("BLUETOOTH>", "", " Bluetooth --> OFF", 1000);  // Bluetooth apagado
                 } else {
                     bluetoothActive = true;
-                    displayShow("BLUETOOTH>", "", " Bluetooth --> ON", 1000);
+                    displayShow("BLUETOOTH>", "", " Bluetooth --> ON", 1000);   // Bluetooth encendido
                 }
-                menuDisplay = 23;
+                menuDisplay = 23;  // Regresa al menú anterior
                 break;
 
-            case 240:    // 2.Configuration ---> Status
-                displayShow(" STATUS>", "", "> Write","  Select","",lastLine);
+            case 240:    // 2.Configuration ---> Status (primer ítem seleccionado)
+                displayShow(" ESTADO>",   // STATUS
+                            "",
+                            "> Escribir",  // Write
+                            "  Seleccionar", // Select
+                            "",
+                            lastLine);
                 break;
-            case 241:    // 2.Configuration ---> Status
-                displayShow(" STATUS>", "", "  Write","> Select","",lastLine);
+
+            case 241:    // 2.Configuration ---> Status (segundo ítem seleccionado)
+                displayShow(" ESTADO>",
+                            "",
+                            "  Escribir",
+                            "> Seleccionar",
+                            "",
+                            lastLine);
                 break;
 
             case 250:    // 2.Configuration ---> Notifications
-                displayShow(" NOTIFIC>", "> Turn Off Sound/Led","","","",lastLine);
+                // Pantalla para desactivar sonidos o LED
+                displayShow(" NOTIFIC>", 
+                            "> Apagar Sonido/LED",
+                            "",
+                            "",
+                            "",
+                            lastLine);
                 break;
 
             case 260:   // 2.Configuration ---> Reboot
                 if (keyDetected) {
-                    displayShow(" REBOOT?", "","Confirm Reboot...","","","<Back   Enter=Confirm");
+                    // Confirmación de reinicio cuando hay teclado disponible
+                    displayShow(" ¿REINICIAR?",   // REBOOT?
+                                "",
+                                "Confirmar reinicio...", // Confirm Reboot...
+                                "",
+                                "",
+                                "<Atrás   Enter=Confirmar");  // Back / Confirm
                 } else {
-                    displayShow(" REBOOT?", "no Keyboard Detected"," Use RST Button to","Reboot Tracker","",lastLine);
+                    // No hay teclado: instrucción manual
+                    displayShow(" ¿REINICIAR?",
+                                "No se detecta teclado",
+                                " Use el botón RST para",
+                                "reiniciar el tracker",
+                                "",
+                                lastLine);
                 }
                 break;
+
             case 270:   // 2.Configuration ---> Power Off
-                displayShow("POWER OFF?", "","Confirm Power Off...","","","<Back Enter/>=Confirm");
+                // Confirmación para apagar el dispositivo
+                displayShow("¿APAGAR?",           // POWER OFF?
+                            "",
+                            "Confirmar apagado...",  // Confirm Power Off...
+                            "",
+                            "",
+                            "<Atrás  Enter/=Confirmar");
                 break;
 
 //////////
-            case 30:     // 3. Reports : Wx Report
-                displayShow(" REPORTS >","> 1.Wx Report", "  2.Hospital QTH", "  3.Police QTH", "  4.Fire Station QTH", lastLine);
+            case 30:     // 3. Reports : Wx Report (Reporte meteorológico)
+                // Menú de Reportes — opción 1 seleccionada: Reporte del clima (Weather Report)
+                displayShow(" REPORTES >",               // REPORTS >
+                            "> 1.Reporte Clima",         // > 1.Wx Report
+                            "  2.Hospital Cercano",      // 2.Hospital QTH
+                            "  3.Estación de Policía",   // 3.Police QTH
+                            "  4.Estación de Bomberos",  // 4.Fire Station QTH
+                            lastLine);
                 break;
+
             case 31:     // 3. Reports : Nearest Hospital
-                displayShow(" REPORTS >","  1.Wx Report", "> 2.Hospital QTH", "  3.Police QTH", "  4.Fire Station QTH", lastLine);
+                // Opción 2 seleccionada: Hospital más cercano
+                displayShow(" REPORTES >",
+                            "  1.Reporte Clima",
+                            "> 2.Hospital Cercano",
+                            "  3.Estación de Policía",
+                            "  4.Estación de Bomberos",
+                            lastLine);
                 break;
+
             case 32:     // 3. Reports : Nearest Police Station
-                displayShow(" REPORTS >","  1.Wx Report", "  2.Hospital QTH", "> 3.Police QTH", "  4.Fire Station QTH", lastLine);
+                // Opción 3 seleccionada: Policía más cercana
+                displayShow(" REPORTES >",
+                            "  1.Reporte Clima",
+                            "  2.Hospital Cercano",
+                            "> 3.Estación de Policía",
+                            "  4.Estación de Bomberos",
+                            lastLine);
                 break;
+
             case 33:     // 3. Reports : Nearest Fire Station
-                displayShow(" REPORTS >","  1.Wx Report", "  2.Hospital QTH", "  3.Police QTH", "> 4.Fire Station QTH", lastLine);
+                // Opción 4 seleccionada: Bomberos más cercanos
+                displayShow(" REPORTES >",
+                            "  1.Reporte Clima",
+                            "  2.Hospital Cercano",
+                            "  3.Estación de Policía",
+                            "> 4.Estación de Bomberos",
+                            lastLine);
                 break;
-            
+
             case 300:
-                // waiting for Report
+                // Esperando datos de reporte (operación en progreso)
                 break;
 
 //////////
-            case 40:    //4.Stations ---> Packet Decoder
-                displayShow(" STATIONS>", "", "> Packet Decoder", "  Near By Stations", "", "<Back");
-                break;
-            case 41:    //4.Stations ---> Near By Stations
-                displayShow(" STATIONS>", "", "  Packet Decoder", "> Near By Stations", "", "<Back");
+            case 40:    // 4. Stations ---> Packet Decoder
+                // Menú principal de Estaciones: opción "Decodificador de paquetes" seleccionada
+                displayShow(" ESTACIONES>",    // Encabezado: STATIONS
+                            "", 
+                            "> Decodificador Paq.", // Packet Decoder
+                            "  Estaciones Cercanas", // Near By Stations
+                            "", 
+                            "<Atrás");              // Hint para volver
                 break;
 
-            case 400:   //4.Stations ---> Packet Decoder
+            case 41:    // 4. Stations ---> Near By Stations
+                // Menú principal de Estaciones: opción "Estaciones Cercanas" seleccionada
+                displayShow(" ESTACIONES>",
+                            "",
+                            "  Decodificador Paq.",
+                            "> Estaciones Cercanas",
+                            "",
+                            "<Atrás");
+                break;
+
+            case 400:   // 4. Stations ---> Packet Decoder (muestra detalles del último paquete recibido)
+                // Solo mostrar si el último paquete NO es de este propio beacon
                 if (lastReceivedPacket.sender != currentBeacon->callsign) {
+
+                    // Preparar primera línea: remitente (callsign) y símbolo
                     String firstLineDecoder = lastReceivedPacket.sender;
                     for (int i = firstLineDecoder.length(); i < 9; i++) {
-                        firstLineDecoder += ' ';
+                        firstLineDecoder += ' '; // Rellenar con espacios hasta longitud mínima para alinear
                     }
                     firstLineDecoder += lastReceivedPacket.symbol;
 
+                    // Paquetes de tipo GPS (0) o Mic-E GPS (4): mostrar posición, alt/speed/course, distancia y rumbo
                     if (lastReceivedPacket.type == 0 || lastReceivedPacket.type == 4) {      // gps and Mic-E gps
 
+                        // Formatear altitud/velocidad/rumbo en un buffer (ej: "A=0123m  45km/h 180")
                         char bufferCourseSpeedAltitude[24];
-                        sprintf(bufferCourseSpeedAltitude, "A=%04dm %3dkm/h %3d", lastReceivedPacket.altitude, lastReceivedPacket.speed, lastReceivedPacket.course);
+                        sprintf(bufferCourseSpeedAltitude, "A=%04dm %3dkm/h %3d",
+                                lastReceivedPacket.altitude,
+                                lastReceivedPacket.speed,
+                                lastReceivedPacket.course);
                         String courseSpeedAltitude = String(bufferCourseSpeedAltitude);
 
-                        double distanceKm = TinyGPSPlus::distanceBetween(gps.location.lat(), gps.location.lng(), lastReceivedPacket.latitude, lastReceivedPacket.longitude) / 1000.0;
-                        double courseTo   = TinyGPSPlus::courseTo(gps.location.lat(), gps.location.lng(), lastReceivedPacket.latitude, lastReceivedPacket.longitude);
-                        
-                        String pathDec = (lastReceivedPacket.path.length() > 14) ? "P:" : "PATH:  ";
+                        // Calcular distancia (km) y rumbo hacia la posición del paquete
+                        double distanceKm = TinyGPSPlus::distanceBetween(
+                                                gps.location.lat(), gps.location.lng(),
+                                                lastReceivedPacket.latitude, lastReceivedPacket.longitude) / 1000.0;
+                        double courseTo   = TinyGPSPlus::courseTo(
+                                                gps.location.lat(), gps.location.lng(),
+                                                lastReceivedPacket.latitude, lastReceivedPacket.longitude);
+
+                        // Preparar la cadena PATH/RUTA; si es larga usar prefijo corto "R:"
+                        String pathDec = (lastReceivedPacket.path.length() > 14) ? "R:" : "RUTA:  ";
                         pathDec += lastReceivedPacket.path;
 
-                        displayShow(firstLineDecoder, "GPS " + String(lastReceivedPacket.latitude,3) + " " + String(lastReceivedPacket.longitude,3), courseSpeedAltitude, "D:" + String(distanceKm) + "km    " + String(courseTo,0), pathDec, "< RSSI:" + String(lastReceivedPacket.rssi) + " SNR:" + String(lastReceivedPacket.snr));
+                        // Mostrar la información en las 6 líneas del display
+                        // Línea 1: callsign + símbolo
+                        // Línea 2: GPS lat lon (3 decimales)
+                        // Línea 3: Alt/Vel/Rumbo
+                        // Línea 4: Distancia en km y rumbo (curso) hacia el objetivo
+                        // Línea 5: PATH / RUTA
+                        // Línea 6: RSSI y SNR (indicadores de señal)
+                        displayShow(firstLineDecoder,
+                                    "GPS " + String(lastReceivedPacket.latitude, 3) + " " + String(lastReceivedPacket.longitude, 3),
+                                    courseSpeedAltitude,
+                                    "D:" + String(distanceKm) + "km    " + String(courseTo, 0),
+                                    pathDec,
+                                    "< RSSI:" + String(lastReceivedPacket.rssi) + " SNR:" + String(lastReceivedPacket.snr));
+
                     } else if (lastReceivedPacket.type == 1) {    // message
-                        displayShow(firstLineDecoder, "ADDRESSEE: " + lastReceivedPacket.addressee, "MSG:  " + lastReceivedPacket.payload, "", "", "< RSSI:" + String(lastReceivedPacket.rssi) + " SNR:" + String(lastReceivedPacket.snr));
+                        // Paquete tipo mensaje: mostrar remitente/destinatario y cuerpo
+                        displayShow(firstLineDecoder,
+                                    "DESTINATARIO: " + lastReceivedPacket.addressee, // traducido
+                                    "MSJ:  " + lastReceivedPacket.payload,           // MSG -> MSJ
+                                    "",
+                                    "",
+                                    "< RSSI:" + String(lastReceivedPacket.rssi) + " SNR:" + String(lastReceivedPacket.snr));
+
                     } else if (lastReceivedPacket.type == 2) {    // status
-                        displayShow(firstLineDecoder, "-------STATUS-------", lastReceivedPacket.payload, "", "", "< RSSI:" + String(lastReceivedPacket.rssi) + " SNR:" + String(lastReceivedPacket.snr));
+                        // Paquete tipo estado
+                        displayShow(firstLineDecoder,
+                                    "-----ESTADO------",       // STATUS -> ESTADO
+                                    lastReceivedPacket.payload,
+                                    "",
+                                    "",
+                                    "< RSSI:" + String(lastReceivedPacket.rssi) + " SNR:" + String(lastReceivedPacket.snr));
+
                     } else if (lastReceivedPacket.type == 3) {    // telemetry
-                        displayShow(firstLineDecoder, "------TELEMETRY------", "", "", "", "< RSSI:" + String(lastReceivedPacket.rssi) + " SNR:" + String(lastReceivedPacket.snr));
+                        // Paquete de telemetría
+                        displayShow(firstLineDecoder,
+                                    "----TELEMETRÍA----",     // TELEMETRY -> TELEMETRÍA
+                                    "",
+                                    "",
+                                    "",
+                                    "< RSSI:" + String(lastReceivedPacket.rssi) + " SNR:" + String(lastReceivedPacket.snr));
+
                     } else if (lastReceivedPacket.type == 5) {    // object
-                        displayShow(firstLineDecoder, "-------OBJECT-------", "", "", "", "< RSSI:" + String(lastReceivedPacket.rssi) + " SNR:" + String(lastReceivedPacket.snr));
+                        // Paquete tipo objeto (APRS object)
+                        displayShow(firstLineDecoder,
+                                    "-----OBJETO-------",     // OBJECT -> OBJETO
+                                    "",
+                                    "",
+                                    "",
+                                    "< RSSI:" + String(lastReceivedPacket.rssi) + " SNR:" + String(lastReceivedPacket.snr));
                     }
                 }
                 break;
-            case 410:    //4.Stations ---> Near By Stations
-                displayShow(" NEAR BY>", STATION_Utils::getNearStation(0), STATION_Utils::getNearStation(1), STATION_Utils::getNearStation(2), STATION_Utils::getNearStation(3), "<Back");
-                break;
 
+            case 410:    // 4. Stations ---> Near By Stations (lista de estaciones cercanas)
+                // Mostrar hasta 4 estaciones cercanas obtenidas desde STATION_Utils
+                displayShow(" CERCANAS>", 
+                            STATION_Utils::getNearStation(0),
+                            STATION_Utils::getNearStation(1),
+                            STATION_Utils::getNearStation(2),
+                            STATION_Utils::getNearStation(3),
+                            "<Atrás");
+                break;
 //////////
             case 50:    // 5.Winlink MENU
                 if (winlinkStatus == 5) {
@@ -656,46 +1228,102 @@ namespace MENU_Utils {
                 // check si no esta logeado o si
 
 //////////
-            case 60:    // 6. Extras ---> Send Email with GPS info
-                displayShow(" EXTRAS>", "  Flashlight    (" + checkProcessActive(flashlight) + ")", "> Send Email(GPS)", "  Digipeater    (" + checkProcessActive(digipeaterActive) + ")", "  S.O.S.        (" + checkProcessActive(sosActive) + ")", lastLine);
+            case 60:    // 6. Extras ---> Enviar Email con info GPS
+                displayShow(" EXTRAS>", 
+                            "  Linterna       (" + checkProcessActive(flashlight) + ")",
+                            "> Enviar Email(GPS)",
+                            "  Digipeater     (" + checkProcessActive(digipeaterActive) + ")",
+                            "  S.O.S.         (" + checkProcessActive(sosActive) + ")",
+                            lastLine);
                 break;
+
             case 61:    // 6. Extras ---> Digipeater
-                displayShow(" EXTRAS>", "  Send Email(GPS)", "> Digipeater    (" + checkProcessActive(digipeaterActive) + ")", "  S.O.S.        (" + checkProcessActive(sosActive) + ")", "  Beacon(GPS) + Comment", lastLine);
+                displayShow(" EXTRAS>",
+                            "  Enviar Email(GPS)",
+                            "> Digipeater     (" + checkProcessActive(digipeaterActive) + ")",
+                            "  S.O.S.         (" + checkProcessActive(sosActive) + ")",
+                            "  Beacon(GPS) + Comentario",
+                            lastLine);
                 break;
+
             case 62:    // 6. Extras ---> S.O.S.
-                displayShow(" EXTRAS>", "  Digipeater    (" + checkProcessActive(digipeaterActive) + ")", "> S.O.S.        (" + checkProcessActive(sosActive) + ")", "  Beacon(GPS)+Comment", "  Flashlight    (" + checkProcessActive(flashlight) + ")", lastLine);
+                displayShow(" EXTRAS>",
+                            "  Digipeater     (" + checkProcessActive(digipeaterActive) + ")",
+                            "> S.O.S.         (" + checkProcessActive(sosActive) + ")",
+                            "  Beacon(GPS)+Comentario",
+                            "  Linterna       (" + checkProcessActive(flashlight) + ")",
+                            lastLine);
                 break;
+
             case 63:    // 6. Extras ---> Beacon(GPS) + Comment
-                displayShow(" EXTRAS>", "  S.O.S.        (" + checkProcessActive(sosActive) + ")", "> Beacon(GPS)+Comment", "  Flashlight    (" + checkProcessActive(flashlight) + ")", "  Send Email(GPS)", lastLine);
+                displayShow(" EXTRAS>",
+                            "  S.O.S.         (" + checkProcessActive(sosActive) + ")",
+                            "> Beacon(GPS)+Comentario",
+                            "  Linterna       (" + checkProcessActive(flashlight) + ")",
+                            "  Enviar Email(GPS)",
+                            lastLine);
                 break;
+
             case 64:    // 6. Extras ---> Flashlight
-                displayShow(" EXTRAS>", "  Beacon(GPS)+Comment", "> Flashlight    (" + checkProcessActive(flashlight) + ")", "  Send Email(GPS)", "  Digipeater    (" + checkProcessActive(digipeaterActive) + ")", lastLine);
+                displayShow(" EXTRAS>",
+                            "  Beacon(GPS)+Comentario",
+                            "> Linterna       (" + checkProcessActive(flashlight) + ")",
+                            "  Enviar Email(GPS)",
+                            "  Digipeater     (" + checkProcessActive(digipeaterActive) + ")",
+                            lastLine);
                 break;
 
             case 630:
                 if (keyDetected) {
                     if (messageText.length() <= 67) {
                         String lengthStr = (messageText.length() < 10) ? "0" + String(messageText.length()) : String(messageText.length());
-                        displayShow(" COMMENT>", "Send this Comment in", "the next GPS Beacon :", messageText, "", "<Back   (" + lengthStr + ")   Enter>");
+                        displayShow(" COMENTARIO>",
+                                    "Enviar este Comentario",
+                                    "en la próxima Beacon GPS:",
+                                    messageText,
+                                    "",
+                                    "<Atrás   (" + lengthStr + ")   Enter>");
                     } else {
-                        displayShow(" COMMENT>", "Comment is too long! ", "Comment too long:" + messageText, "", "", "<Back   (" + String(messageText.length()) + ")>");
+                        displayShow(" COMENTARIO>",
+                                    "¡Comentario demasiado largo!",
+                                    "Muy largo: " + messageText,
+                                    "",
+                                    "",
+                                    "<Atrás   (" + String(messageText.length()) + ")>");
                     }
                 } else {
-                    displayShow(" COMMENT>", "No Keyboard Detected", "", "", "", lastLine);
+                    displayShow(" COMENTARIO>",
+                                "No se detectó teclado",
+                                "",
+                                "",
+                                "",
+                                lastLine);
                 }
                 break;
 
-//////////
-            case 9000:  //  9. multiPress Menu ---> Turn ON WiFi AP
-                displayShow(" CONFIG>", "> Turn Tracker Off","  Config. WiFi AP",  "","",lastLine);
+            /////////
+
+            case 9000:  // 9. multiPress Menu ---> Apagar Tracker
+                displayShow(" CONFIG>",
+                            "> Apagar Tracker",
+                            "  Configurar WiFi AP",
+                            "",
+                            "",
+                            lastLine);
                 break;
-            case 9001:  //  9. multiPress Menu
-                displayShow(" CONFIG>", "  Turn Tracker Off","> Config. WiFi AP",  "","",lastLine);
+
+            case 9001:  // 9. multiPress Menu ---> Configurar WiFi
+                displayShow(" CONFIG>",
+                            "  Apagar Tracker",
+                            "> Configurar WiFi AP",
+                            "",
+                            "",
+                            lastLine);
                 break;
 
 
 //////////
-            case 0:       ///////////// MAIN MENU //////////////
+            case 0: // Menu Principal
                 String hdopState, firstRowMainMenu, secondRowMainMenu, thirdRowMainMenu, fourthRowMainMenu, fifthRowMainMenu, sixthRowMainMenu;
 
                 firstRowMainMenu = currentBeacon->callsign;
@@ -707,7 +1335,7 @@ namespace MENU_Utils {
                         firstRowMainMenu += currentBeacon->symbol;
                     }
                 }
-
+                // Segunda fila del menú principal: Fecha y Hora o mensaje LoRa APRS TNC
                 if (disableGPS) {
                     secondRowMainMenu = "";
                     thirdRowMainMenu = "    LoRa APRS TNC";
@@ -722,13 +1350,14 @@ namespace MENU_Utils {
                     } else {
                         thirdRowMainMenu = String(Utils::getMaidenheadLocator(gps.location.lat(), gps.location.lng(), 8));
                         thirdRowMainMenu += " LoRa[";
+                        // Indicación de la frecuencia LoRa en el menú principal
                         switch (loraIndex) {
                             case 0: thirdRowMainMenu += "Eu]"; break;
                             case 1: thirdRowMainMenu += "PL]"; break;
                             case 2: thirdRowMainMenu += "UK]"; break;
                         }
                     }
-                    
+                    // Tercera fila del menú principal: Latitud/Longitud o Locator + Satélites y HDOP
                     for (int i = thirdRowMainMenu.length(); i < 18; i++) {
                         thirdRowMainMenu += " ";
                     }
@@ -749,6 +1378,7 @@ namespace MENU_Utils {
                         thirdRowMainMenu += "--";
                     }
 
+                    // Cuarta fila del menú principal: Altitud, Velocidad y Rumbo
                     String fourthRowAlt = String(gps.altitude.meters(),0);
                     fourthRowAlt.trim();
                     for (int a = fourthRowAlt.length(); a < 4; a++) {
@@ -774,35 +1404,38 @@ namespace MENU_Utils {
                     fourthRowMainMenu += fourthRowSpeed;
                     fourthRowMainMenu += "km/h  ";
                     fourthRowMainMenu += fourthRowCourse;
+                    // Mensajes WLNK/APRS o dato sensor en lugar de Alt/Vel/Rumbo
                     if (Config.telemetry.active && (time_now % 10 < 5) && wxModuleType != 0) {
                         fourthRowMainMenu = WX_Utils::readDataSensor(1);
                     }
                     if (MSG_Utils::getNumWLNKMails() > 0) {
-                        fourthRowMainMenu = "** WLNK MAIL: ";
+                        fourthRowMainMenu = "** WLNK Correo: ";
                         fourthRowMainMenu += String(MSG_Utils::getNumWLNKMails());
                         fourthRowMainMenu += " **";
                     }
                     if (MSG_Utils::getNumAPRSMessages() > 0) {
-                        fourthRowMainMenu = "*** MESSAGES: ";
+                        fourthRowMainMenu = "*** Mensajes: ";
                         fourthRowMainMenu += String(MSG_Utils::getNumAPRSMessages());
                         fourthRowMainMenu += " ***";
                     }
                     if (!gpsIsActive) {
-                        fourthRowMainMenu = "*** GPS  SLEEPING ***";
+                        fourthRowMainMenu = "*** GPS  Apagado ***";
                     }
                 }
-
+                
+                // Quinta fila del menú principal: Dirección cardinal o último tracker escuchado
                 if (showHumanHeading) {
                     fifthRowMainMenu = GPS_Utils::getCardinalDirection(gps.course.deg());
                 } else {
-                    fifthRowMainMenu = "LAST Rx = ";
+                    fifthRowMainMenu = "Ultimo Rx = ";
                     fifthRowMainMenu += MSG_Utils::getLastHeardTracker();
                 }
-
+                
+                // Estado de la batería para imprimir en el display
                 if (batteryConnected) {
                     String batteryVoltage = BATTERY_Utils::getBatteryInfoVoltage();
                     #if defined(TTGO_T_Beam_V0_7) || defined(TTGO_T_LORA32_V2_1_GPS) || defined(TTGO_T_LORA32_V2_1_GPS_915) || defined(TTGO_T_LORA32_V2_1_TNC) || defined(TTGO_T_LORA32_V2_1_TNC_915) || defined(HELTEC_V3_GPS) || defined(HELTEC_V3_TNC) || defined(HELTEC_V3_2_GPS) || defined(HELTEC_V3_2_TNC) || defined(HELTEC_WIRELESS_TRACKER) || defined(HELTEC_WSL_V3_GPS_DISPLAY) || defined(TTGO_T_DECK_GPS) || defined(TTGO_T_DECK_PLUS) || defined(LIGHTTRACKER_PLUS_1_0)
-                        sixthRowMainMenu = "Battery: ";
+                        sixthRowMainMenu = "Bateria: ";
                         sixthRowMainMenu += batteryVoltage;
                         sixthRowMainMenu += "V   ";
                         sixthRowMainMenu += BATTERY_Utils::getPercentVoltageBattery(batteryVoltage.toFloat());
@@ -812,15 +1445,15 @@ namespace MENU_Utils {
                         String batteryCharge = POWER_Utils::getBatteryInfoCurrent();
                         #ifdef HAS_AXP192
                             if (batteryCharge.toInt() == 0) {
-                                sixthRowMainMenu = "Battery Charged ";
+                                sixthRowMainMenu = "Bateria cargada ";
                                 sixthRowMainMenu += batteryVoltage;
                                 sixthRowMainMenu += "V";
                             } else if (batteryCharge.toInt() > 0) {
                                 sixthRowMainMenu = "Bat: ";
                                 sixthRowMainMenu += batteryVoltage;
-                                sixthRowMainMenu += "V (charging)";
+                                sixthRowMainMenu += "V (cargando)";
                             } else {
-                                sixthRowMainMenu = "Battery ";
+                                sixthRowMainMenu = "Bateria ";
                                 sixthRowMainMenu += batteryVoltage;
                                 sixthRowMainMenu += "V ";
                                 sixthRowMainMenu += batteryCharge;
@@ -841,13 +1474,13 @@ namespace MENU_Utils {
                             if (POWER_Utils::isCharging() && batteryCharge != "100") {
                                 sixthRowMainMenu = "Bat: ";
                                 sixthRowMainMenu += String(batteryVoltage);
-                                sixthRowMainMenu += "V (charging)";
+                                sixthRowMainMenu += "V (cargando)";
                             } else if (!POWER_Utils::isCharging() && batteryCharge == "100") {
-                                sixthRowMainMenu = "Battery Charged ";
+                                sixthRowMainMenu = "Bateria Cargada ";
                                 sixthRowMainMenu += String(batteryVoltage);
                                 sixthRowMainMenu += "V";
                             } else {
-                                sixthRowMainMenu = "Battery  ";
+                                sixthRowMainMenu = "Bateria  ";
                                 sixthRowMainMenu += String(batteryVoltage);
                                 sixthRowMainMenu += "V   ";
                                 sixthRowMainMenu += batteryCharge;
@@ -856,7 +1489,7 @@ namespace MENU_Utils {
                         #endif
                     #endif
                 } else {
-                    sixthRowMainMenu = "No Battery Connected";
+                    sixthRowMainMenu = "Bateria Desconectada";
                 }
                 displayShow(firstRowMainMenu,
                             secondRowMainMenu,
