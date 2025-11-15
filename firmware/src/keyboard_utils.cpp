@@ -1,21 +1,3 @@
-/* Copyright (C) 2025 Ricardo Guzman - CA2RXU
- * 
- * This file is part of LoRa APRS Tracker.
- * 
- * LoRa APRS Tracker is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or 
- * (at your option) any later version.
- * 
- * LoRa APRS Tracker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with LoRa APRS Tracker. If not, see <https://www.gnu.org/licenses/>.
- */
-
 #include <APRSPacketLib.h>
 #include <TinyGPS++.h>
 #include <logger.h>
@@ -33,58 +15,68 @@
 #include "utils.h"
 
 
-extern Configuration    Config;
-extern Beacon           *currentBeacon;
-extern TinyGPSPlus      gps;
-extern logging::Logger  logger;
-extern bool             sendUpdate;
-extern int              menuDisplay;
-extern uint32_t         menuTime;
-extern uint8_t          myBeaconsIndex;
-extern int              myBeaconsSize;
-extern uint8_t          loraIndex;
-extern bool             displayState;
-extern uint32_t         displayTime;
-extern bool             displayEcoMode;
-extern uint8_t          screenBrightness;
-extern bool             statusState;
-extern uint32_t         statusTime;
-extern int              messagesIterator;
-extern bool             messageLed;
-extern String           messageCallsign;
-extern String           messageText;
-extern bool             sendStandingUpdate;
-extern bool             flashlight;
-extern bool             digipeaterActive;
-extern bool             sosActive;
-extern uint8_t          winlinkStatus;
-extern String           winlinkMailNumber;
-extern String           winlinkAddressee;
-extern String           winlinkSubject;
-extern String           winlinkBody;
-extern String           winlinkAlias;
-extern String           winlinkAliasComplete;
-extern bool             winlinkCommentState;
-extern bool             gpsIsActive;
-extern bool             sendStartTelemetry;
-extern uint8_t          keyboardAddress;
+extern Configuration    Config;                 // Estructura con la configuración cargada (JSON)
+extern Beacon           *currentBeacon;        // Puntero al beacon APRS/activo actualmente
+extern TinyGPSPlus      gps;                    // Objeto TinyGPS++ que contiene posición, curso, satélites, etc.
+extern logging::Logger  logger;                 // Logger global para mensajes INFO/DEBUG/ERROR
+extern bool             sendUpdate;            // Flag para indicar que se debe enviar una actualización APRS/telemetry
+extern int              menuDisplay;           // Índice/estado del menú actual mostrado en pantalla
+extern uint32_t         menuTime;              // Marca de tiempo cuando se abrió/actualizó el menú (millis)
+extern uint8_t          myBeaconsIndex;        // Índice para iterar la lista de \"mis beacons\"
+extern int              myBeaconsSize;         // Tamaño del array/lista de beacons propios
+extern uint8_t          loraIndex;             // Índice de la configuración LoRa seleccionada
+extern bool             displayState;          // Estado actual de la pantalla (on/off)
+extern uint32_t         displayTime;           // Marca temporal para control de pantalla (ej. timeout)
+extern bool             displayEcoMode;        // Modo eco para la pantalla (reduce brillo/consumo)
+extern uint8_t          screenBrightness;      // Valor de brillo actual (0..255 u otro mapeo)
+extern bool             statusState;           // Estado de la pantalla de estado (mostrar/ocultar)
+extern uint32_t         statusTime;            // Marca de tiempo relacionada con la pantalla de estado
+extern int              messagesIterator;      // Índice para iterar mensajes (APRS/Winlink)
+extern bool             messageLed;            // Flag para encender LED cuando llega mensaje
+extern String           messageCallsign;       // Callsign objetivo para componer un mensaje
+extern String           messageText;           // Texto del mensaje que se está componiendo
+extern bool             sendStandingUpdate;    // Flag para enviar un \"standing update\" periódico
+extern bool             flashlight;            // Estado de la linterna (flashlight)
+extern bool             digipeaterActive;      // Flag para modo digipeater activo
+extern bool             sosActive;             // Estado de alarma SOS activo
+extern uint8_t          winlinkStatus;         // Estado interno del cliente Winlink (códigos)
+extern String           winlinkMailNumber;     // Número/ID del mail Winlink actual
+extern String           winlinkAddressee;      // Destinatario en flujo Winlink
+extern String           winlinkSubject;        // Asunto del mail Winlink
+extern String           winlinkBody;           // Cuerpo del mail Winlink
+extern String           winlinkAlias;          // Alias temporal para Winlink
+extern String           winlinkAliasComplete;  // Alias completo/formatado para envío
+extern bool             winlinkCommentState;   // Estado de la sección comentario en Winlink (expandido/colapsado)
+extern bool             gpsIsActive;           // Indica si el GPS está encendido/activo
+extern bool             sendStartTelemetry;    // Flag para enviar telemetría de arranque
+extern uint8_t          keyboardAddress;       // Dirección/ID del teclado (si aplica)
 
-extern std::vector<String>  outputMessagesBuffer;
+extern std::vector<String>  outputMessagesBuffer; // Buffer de mensajes de salida pendientes (cola)
 
-bool        keyboardConnected       = false;
-bool        keyDetected             = false;
-uint32_t    keyboardTime            = millis();
+// Variables definidas en este módulo (estado local/global)
+bool        keyboardConnected       = false;     // Indica si hay teclado conectado físicamente
+bool        keyDetected             = false;     // Indica si se detectó una pulsación de tecla
+uint32_t    keyboardTime            = millis();  // Marca de tiempo de la última interacción de teclado
 
-String      messageCallsign         = "";
-String      messageText             = "";
+// Atención: las siguientes variables se repiten en 'extern' arriba.
+// Si estas definiciones están aquí, las declaraciones 'extern' deben eliminarse
+// en el archivo donde se define realmente la variable para evitar duplicados.
+// Mantengo los nombres tal cual según tu snippet original.
+String      messageCallsign         = "";        // (Definición local) Callsign usado para redactar mensajes
+String      messageText             = "";        // (Definición local) Texto del mensaje en edición
 
-int         messagesIterator        = 0;
+int         messagesIterator        = 0;         // (Definición local) índice de paginación de mensajes
 
-bool        showHumanHeading        = false;
+bool        showHumanHeading        = false;     // Mostrar rumbo en formato cardinal (N, NE, ...) en vez de grados
+
 
 
 namespace KEYBOARD_Utils {
-
+    
+    // Mueve la selección del menú hacia arriba (flecha arriba).
+    // La función interpreta el valor actual de `menuDisplay` y realiza
+    // un decremento con "wrap-around" dentro del rango correspondiente
+    // a cada submenú / página.
     void upArrow() {
         if (menuDisplay >= 1 && menuDisplay <= 6) {
             menuDisplay--;
@@ -149,7 +141,12 @@ namespace KEYBOARD_Utils {
         }
     }
 
+    // Mueve la selección del menú hacia abajo (abajo).
+    // La función interpreta el valor actual de `menuDisplay` y realiza
+    // un decremento con "wrap-around" dentro del rango correspondiente
+    // a cada submenú / página.
     void downArrow() {
+        // Desde el menú principal, activar la pantalla o ciclo de menús
         if (menuDisplay == 0) {
             if (displayState) {
                 sendUpdate = true;
@@ -172,6 +169,7 @@ namespace KEYBOARD_Utils {
             if (menuDisplay > 133) menuDisplay = 130;
         } else if (menuDisplay == 100) {
             messagesIterator++;
+            // Si se han mostrado todos los mensajes, regresar al submenú de Mensajes
             if (messagesIterator == MSG_Utils::getNumAPRSMessages()) {
                 menuDisplay = 10;
                 messagesIterator = 0;
@@ -218,6 +216,7 @@ namespace KEYBOARD_Utils {
             if (menuDisplay > 50110) menuDisplay = 50100;
         } else if (menuDisplay == 50101) {
             messagesIterator++;
+            // Navegación hacia abajo en listas de correos Winlink
             if (messagesIterator == MSG_Utils::getNumWLNKMails()) {
                 if (winlinkStatus == 0) {
                     menuDisplay = 51;
@@ -247,6 +246,18 @@ namespace KEYBOARD_Utils {
             if (menuDisplay > 9001) menuDisplay = 9000;
         }
     }
+
+    /**
+     * leftArrow()
+     *   Navegación hacia la izquierda en la UI/menú. Actúa como "volver" o "retroceder"
+     *   en la jerarquía de menús y pantallas; también cancela y limpia campos en pantallas
+     *   de edición (por ejemplo, borrado de texto de mensaje o callsign).
+     *
+     * Modifica variables globales:
+     *   - menuDisplay (principalmente)
+     *   - messageText, messageCallsign, messagesIterator (según caso)
+     *   - winlinkMailNumber (en casos concretos)
+     */
 
     void leftArrow() {
         if (menuDisplay >= 1 && menuDisplay <= 6) {
@@ -292,6 +303,18 @@ namespace KEYBOARD_Utils {
             menuDisplay = 63;
         }
     }
+
+    /* rightArrow()
+    *   Navegación hacia la derecha en la UI/menú. Actúa como "entrar" o "seleccionar"
+    *   una opción del menú actual; también desencadena acciones directas (p. ej.
+    *   cambiar callsign, iniciar login Winlink, alternar flags, enviar tareas).
+    *   Modifica variables globales / realiza acciones):
+    *   - menuDisplay (cambios de vista)
+    *   - myBeaconsIndex (iteración de perfiles)
+    *   - sendStartTelemetry, winlinkCommentState, displayEcoMode, screenBrightness, etc.
+    *   - Ejecuta llamadas a subsistemas: LoRa_Utils, MSG_Utils, WINLINK_Utils,
+    *     POWER_Utils, STATION_Utils, logger, etc.
+    */
 
     void rightArrow() {
         if (menuDisplay == 0 || menuDisplay == 200) {
@@ -556,6 +579,32 @@ namespace KEYBOARD_Utils {
         }
     }
 
+    /**
+     * processPressedKey(char key)
+     *
+     * Propósito:
+     *   Manejar una tecla presionada (entrada del teclado físico o virtual) y
+     *   traducirla en acciones de la interfaz y del sistema (navegación del menú,
+     *   edición de textos, envío de mensajes, ejecución de comandos como reboot/poweroff).
+     *
+     * Comportamiento:
+     *   - Marca `keyDetected = true` y actualiza `menuTime` al recibir cualquier tecla.
+     *   - Si la pantalla está apagada, la enciende (displayToggle) y resetea timers.
+     *   - Interpreta teclas especiales (códigos: 181 up, 182 down, 180 left, 183 right,
+     *     8 delete, 13 enter, 27 esc, 32 space) y también rangos ASCII para edición.
+     *   - Realiza diferentes acciones dependiendo del estado `menuDisplay`:
+     *       • Navegación de menús (cambiar valor de menuDisplay).
+     *       • Entrada de texto para fields: messageCallsign, messageText, winlinkAddressee,
+     *         winlinkSubject, winlinkBody, winlinkAlias, winlinkAliasComplete, winlinkMailNumber.
+     *       • Acciones inmediatas: reboot, shutdown, enviar paquete APRS/LoRa, añadir a buffer de salida.
+     *   - Aplica validaciones de caracteres aceptados para cada campo (letras, números y símbolos específicos).
+     *
+     * Efectos secundarios (modifica variables globales / llama subsistemas):
+     *   - menuDisplay, keyDetected, menuTime, messageCallsign, messageText, messagesIterator,
+     *     winlink* variables, messageLed, sendStartTelemetry, etc.
+     *   - Llamadas a utilidades externas: MSG_Utils, LoRa_Utils, POWER_Utils, SLEEP_Utils, displayShow.
+     *   - Puede reiniciar el dispositivo (ESP.restart) o apagarlo (POWER_Utils::shutdown).
+     */
     void processPressedKey(char key) {
         keyDetected = true;
         menuTime = millis();
@@ -778,6 +827,22 @@ namespace KEYBOARD_Utils {
         }
     }
 
+    /**
+     * read()
+     *
+     * Propósito:
+     *   Poll del teclado conectado por I2C (Wire). Lee bytes disponibles y delega
+     *   el procesamiento de cada tecla a `processPressedKey`.
+     *
+     * Comportamiento:
+     *   - Solo opera si `keyboardConnected == true`.
+     *   - Calcula el tiempo desde la última actividad de teclado y, si excede 30 s,
+     *     reinicia `keyDetected = false` para indicar inactividad.
+     *   - Solicita 1 byte desde la dirección I2C `keyboardAddress` y procesa todos
+     *     los bytes recibidos en el búfer de la interfaz I2C.
+     *   - Por cada byte distinto de 0 llama a `processPressedKey(c)` y actualiza `keyboardTime`.
+     */
+
     void read() {
         if (keyboardConnected) {
             uint32_t lastKey = millis() - keyboardTime;
@@ -793,6 +858,17 @@ namespace KEYBOARD_Utils {
             }
         }
     }
+
+    /**
+     * setup()
+     *
+     * Propósito:
+     *   Inicializaciones relacionadas con el teclado durante el arranque del módulo/UI.
+     *
+     * Comportamiento:
+     *   - Marca `keyboardConnected = true` si la dirección I2C del teclado es distinta de 0
+     *     y si no estamos en modo `simplifiedTrackerMode`.
+     */
 
     void setup() {
         if (!Config.simplifiedTrackerMode) {

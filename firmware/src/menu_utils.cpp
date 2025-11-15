@@ -121,7 +121,7 @@ namespace MENU_Utils {
         if (keyDetected) {  
             lastLine = "<Volver Arriba/Abajo Seleccionar>";  // Texto cuando se usa keypad
         } else {
-            lastLine = "1P=Down 2P=Back LP=Go";            // Texto cuando se usan botones físicos
+            lastLine = "1P=Down 2P=Atras P=Go";            // Texto cuando se usan botones físicos
         }
 
         #if defined(TTGO_T_DECK_PLUS) || defined(TTGO_T_DECK_GPS)
@@ -275,7 +275,7 @@ namespace MENU_Utils {
                 }
                 break;
             case 11:    // 1.Menú para escribir mensajes
-                displayShow(" MESSAGES>", 
+                displayShow(" MENSAJES>", 
                             "  Leer (" + String(MSG_Utils::getNumAPRSMessages()) + ")", 
                             "> Escribir", 
                             "  Borrar", 
