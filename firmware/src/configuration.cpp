@@ -1,21 +1,3 @@
-/* Copyright (C) 2025 Ricardo Guzman - CA2RXU
- * 
- * This file is part of LoRa APRS Tracker.
- * 
- * LoRa APRS Tracker is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or 
- * (at your option) any later version.
- * 
- * LoRa APRS Tracker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with LoRa APRS Tracker. If not, see <https://www.gnu.org/licenses/>.
- */
-
 #include <ArduinoJson.h>
 #include <SPIFFS.h>
 #include "configuration.h"
@@ -30,41 +12,50 @@ void Configuration::writeFile() {
 
     Serial.println("Saving config..");
 
+    // Document JSON estático en memoria (tamaño estimado - ajustar si cambia la estructura)
     StaticJsonDocument<2800> data;
+    // Abrir/crear archivo de configuración en SPIFFS para sobrescribirlo
     File configFile = SPIFFS.open("/tracker_conf.json", "w");
 
-    data["wifiAP"]["active"]                    = wifiAP.active;
-    data["wifiAP"]["password"]                  = wifiAP.password;
+    // --- Wifi AP ---
+    data["wifiAP"]["active"]                    = wifiAP.active;     // activar AP al arrancar
+    data["wifiAP"]["password"]                  = wifiAP.password;   // contraseña del AP
 
+    // --- Beacons: array de perfiles de beacon (callsign, símbolo, comentario, flags...) ---
     for (int i = 0; i < beacons.size(); i++) {
-        data["beacons"][i]["callsign"]              = beacons[i].callsign;
-        data["beacons"][i]["symbol"]                = beacons[i].symbol;
-        data["beacons"][i]["overlay"]               = beacons[i].overlay;
-        data["beacons"][i]["comment"]               = beacons[i].comment;
-        data["beacons"][i]["smartBeaconActive"]     = beacons[i].smartBeaconActive;
-        data["beacons"][i]["smartBeaconSetting"]    = beacons[i].smartBeaconSetting;
-        data["beacons"][i]["micE"]                  = beacons[i].micE;
-        data["beacons"][i]["gpsEcoMode"]            = beacons[i].gpsEcoMode;
-        data["beacons"][i]["profileLabel"]          = beacons[i].profileLabel;
+        data["beacons"][i]["callsign"]              = beacons[i].callsign;            // indicativo
+        data["beacons"][i]["symbol"]                = beacons[i].symbol;              // símbolo APRS
+        data["beacons"][i]["overlay"]               = beacons[i].overlay;             // overlay del símbolo
+        data["beacons"][i]["comment"]               = beacons[i].comment;             // comentario asociado
+        data["beacons"][i]["smartBeaconActive"]     = beacons[i].smartBeaconActive;   // smartbeacon activado?
+        data["beacons"][i]["smartBeaconSetting"]    = beacons[i].smartBeaconSetting;  // configuración smartbeacon (preset)
+        data["beacons"][i]["micE"]                  = beacons[i].micE;                // Mic-E activado?
+        data["beacons"][i]["gpsEcoMode"]            = beacons[i].gpsEcoMode;          // modo eco GPS para este beacon
+        data["beacons"][i]["profileLabel"]          = beacons[i].profileLabel;        // etiqueta de perfil (UI)
     }
 
-    data["display"]["showSymbol"]               = display.showSymbol;
-    data["display"]["ecoMode"]                  = display.ecoMode;
-    data["display"]["timeout"]                  = display.timeout;
-    data["display"]["turn180"]                  = display.turn180;
+    // --- Display: parámetros visuales ---
+    data["display"]["showSymbol"]               = display.showSymbol; // mostrar símbolo en UI?
+    data["display"]["ecoMode"]                  = display.ecoMode;    // modo ECO global de pantalla
+    data["display"]["timeout"]                  = display.timeout;    // tiempo de timeout pantalla (ms)
+    data["display"]["turn180"]                  = display.turn180;    // invertir orientación 180°?
 
-    data["battery"]["sendVoltage"]              = battery.sendVoltage;
-    data["battery"]["voltageAsTelemetry"]       = battery.voltageAsTelemetry;
-    data["battery"]["sendVoltageAlways"]        = battery.sendVoltageAlways;
-    data["battery"]["monitorVoltage"]           = battery.monitorVoltage;
-    data["battery"]["sleepVoltage"]             = battery.sleepVoltage;
+    // --- Battery: parámetros de monitorización ---
+    data["battery"]["sendVoltage"]              = battery.sendVoltage;         // enviar voltaje como telemetría?
+    data["battery"]["voltageAsTelemetry"]       = battery.voltageAsTelemetry;  // mapear voltaje como telemetría
+    data["battery"]["sendVoltageAlways"]        = battery.sendVoltageAlways;   // enviar siempre voltaje
+    data["battery"]["monitorVoltage"]           = battery.monitorVoltage;      // monitorizar voltaje
+    data["battery"]["sleepVoltage"]             = battery.sleepVoltage;        // voltaje para entrar en sleep
 
+    // --- Winlink: credenciales (solo password aquí) ---
     data["winlink"]["password"]                 = winlink.password;
 
+    // --- Telemetría: control y correcciones ---
     data["telemetry"]["active"]                 = telemetry.active;
     data["telemetry"]["sendTelemetry"]          = telemetry.sendTelemetry;
     data["telemetry"]["temperatureCorrection"]  = telemetry.temperatureCorrection;
 
+    // --- Notificaciones: LEDs, buzzer y comportamientos ---
     data["notification"]["ledTx"]               = notification.ledTx;
     data["notification"]["ledTxPin"]            = notification.ledTxPin;
     data["notification"]["ledMessage"]          = notification.ledMessage;
@@ -81,6 +72,7 @@ void Configuration::writeFile() {
     data["notification"]["lowBatteryBeep"]      = notification.lowBatteryBeep;
     data["notification"]["shutDownBeep"]        = notification.shutDownBeep;
     
+    // --- LoRa types: array de configuraciones (frecuencia, SF, BW, CR, potencia) ---
     for (int i = 0; i < loraTypes.size(); i++) {
         data["lora"][i]["frequency"]                = loraTypes[i].frequency;
         data["lora"][i]["spreadingFactor"]          = loraTypes[i].spreadingFactor;
@@ -89,38 +81,60 @@ void Configuration::writeFile() {
         data["lora"][i]["power"]                    = loraTypes[i].power;
     }
 
+    // --- PTT trigger: configuración de PTT (GPIO, tiempos, inversión) ---
     data["pttTrigger"]["active"]                = ptt.active;
     data["pttTrigger"]["io_pin"]                = ptt.io_pin;
     data["pttTrigger"]["preDelay"]              = ptt.preDelay;
     data["pttTrigger"]["postDelay"]             = ptt.postDelay;
     data["pttTrigger"]["reverse"]               = ptt.reverse;
 
+    // --- Bluetooth: estado y preferencias ---
     data["bluetooth"]["active"]                 = bluetooth.active;
     data["bluetooth"]["deviceName"]             = bluetooth.deviceName;
     #ifdef HAS_BT_CLASSIC
-        data["bluetooth"]["useBLE"]             = bluetooth.useBLE;
+        data["bluetooth"]["useBLE"]             = bluetooth.useBLE; // según la configuración
     #else
-        data["bluetooth"]["useBLE"]             = true; // fixed as BLE        
+        data["bluetooth"]["useBLE"]             = true; // en plataformas sin BT Classic forzamos BLE
     #endif
-    data["bluetooth"]["useKISS"]                = bluetooth.useKISS;
+    data["bluetooth"]["useKISS"]                = bluetooth.useKISS; // usar KISS sobre BT?
 
-    data["other"]["simplifiedTrackerMode"]      = simplifiedTrackerMode;
-    data["other"]["sendCommentAfterXBeacons"]   = sendCommentAfterXBeacons;
-    data["other"]["path"]                       = path;
-    data["other"]["nonSmartBeaconRate"]         = nonSmartBeaconRate;
-    data["other"]["rememberStationTime"]        = rememberStationTime;
-    data["other"]["standingUpdateTime"]         = standingUpdateTime;
-    data["other"]["sendAltitude"]               = sendAltitude;
-    data["other"]["disableGPS"]                 = disableGPS;
-    data["other"]["acceptOwnFrameFromTNC"]      = acceptOwnFrameFromTNC;
-    data["other"]["email"]                      = email;
+    // --- Otros: parámetros misceláneos del tracker ---
+    data["other"]["simplifiedTrackerMode"]      = simplifiedTrackerMode;      // modo simplificado (menos opciones)
+    data["other"]["sendCommentAfterXBeacons"]   = sendCommentAfterXBeacons;   // comportamiento APRSThursday
+    data["other"]["path"]                       = path;                       // camino/path APRS
+    data["other"]["nonSmartBeaconRate"]         = nonSmartBeaconRate;         // intervalo cuando no es smart beacon
+    data["other"]["rememberStationTime"]        = rememberStationTime;        // tiempo para recordar estaciones escuchadas
+    data["other"]["standingUpdateTime"]         = standingUpdateTime;         // intervalo standing update
+    data["other"]["sendAltitude"]               = sendAltitude;               // enviar altitud?
+    data["other"]["disableGPS"]                 = disableGPS;                 // desactivar GPS por SW
+    data["other"]["acceptOwnFrameFromTNC"]      = acceptOwnFrameFromTNC;      // aceptar frames propios desde TNC?
+    data["other"]["email"]                      = email;                      // correo configurado para posmsg
 
-
-    serializeJson(data, configFile);
-    configFile.close();
+    // --- Serializar JSON y guardar en SPIFFS ---
+    serializeJson(data, configFile); // escribe el JSON en el archivo abierto
+    configFile.close();              // cerrar el archivo
     Serial.println("Config saved");
 }
 
+/**
+ * Configuration::readFile()
+ *
+ * Propósito:
+ *   Leer y cargar la configuración del dispositivo desde el archivo JSON
+ *   persistente (SPIFFS: /tracker_conf.json). Si el archivo no existe
+ *   devuelve false; si existe, deserializa el JSON y rellena las
+ *   estructuras/variables de configuración del sistema.
+ *
+ * Comportamiento:
+ *   - Intenta abrir el archivo en SPIFFS y deserializarlo con ArduinoJson.
+ *   - Para cada sección del JSON (wifiAP, beacons, display, battery, winlink,
+ *     telemetry, notification, lora, pttTrigger, bluetooth, other) se asignan
+ *     valores a las variables/estructuras internas; si falta una clave se usa
+ *     un valor por defecto mediante el operador `|`.
+ *   - Construye arrays dinámicos (beacons, loraTypes) según el contenido del JSON.
+ *   - Cierra el archivo y devuelve true si la lectura fue satisfactoria, o
+ *     false si el archivo no existe.
+ */
 bool Configuration::readFile() {
     Serial.println("Reading config..");
     File configFile = SPIFFS.open("/tracker_conf.json", "r");
@@ -234,16 +248,20 @@ bool Configuration::readFile() {
     }
 }
 
+// Valida el archivo de configuración verificando si el indicativo contiene "NOCALL".
+// Si encuentra un indicativo no configurado, registra un error y muestra un mensaje en pantalla.
 bool Configuration::validateConfigFile(const String& currentBeaconCallsign) {
     if (currentBeaconCallsign.indexOf("NOCALL") != -1) {
         logger.log(logging::LoggerLevel::LOGGER_LEVEL_ERROR, "Config", "Change all your callsigns in WebConfig");
-        displayShow("ERROR", "Callsigns = NOCALL!", "---> change it !!!", 2000);
+        displayShow("ERROR", "Callsigns = NOCALL!", "---> cambialo !!!", 2000);
         return true;
     } else {
         return false;
     }
 }
 
+// Verifica si el valor Mic-E recibido coincide con alguno de los tipos Mic-E válidos.
+// Retorna true si el código Mic-E es válido, false si no lo es.
 bool Configuration::validateMicE(const String& currentBeaconMicE) {
     String miceMessageTypes[] = {"111", "110", "101", "100", "011", "010", "001" , "000"};
     int arraySize = sizeof(miceMessageTypes) / sizeof(miceMessageTypes[0]);
@@ -256,6 +274,10 @@ bool Configuration::validateMicE(const String& currentBeaconMicE) {
     return validType;
 }
 
+
+// Inicializa una configuración nueva con valores por defecto para WiFi, beacons,
+// pantalla, batería, notificaciones, LoRa, Bluetooth, telemetría y otros parámetros.
+// Se usa cuando no existe el archivo de configuración o cuando debe regenerarse.
 void Configuration::init() {
     wifiAP.active                   = true;
     wifiAP.password                 = "1234567890";
@@ -361,7 +383,9 @@ void Configuration::init() {
     Serial.println("New Data Created...");
 }
 
-
+// Constructor de la clase Configuration. Monta el sistema SPIFFS,
+// verifica si existe el archivo de configuración y, de no existir,
+// genera una configuración nueva y fuerza un reinicio del dispositivo.
 Configuration::Configuration() {
     if (!SPIFFS.begin(false)) {
         Serial.println("SPIFFS Mount Failed");

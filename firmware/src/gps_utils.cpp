@@ -1,21 +1,3 @@
-/* Copyright (C) 2025 Ricardo Guzman - CA2RXU
- * 
- * This file is part of LoRa APRS Tracker.
- * 
- * LoRa APRS Tracker is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or 
- * (at your option) any later version.
- * 
- * LoRa APRS Tracker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with LoRa APRS Tracker. If not, see <https://www.gnu.org/licenses/>.
- */
-
 #include <TinyGPS++.h>
 #include "TimeLib.h"
 #include <APRSPacketLib.h>
@@ -37,96 +19,123 @@
 #endif
 
 
-extern Configuration        Config;
-extern HardwareSerial       gpsSerial;
-extern TinyGPSPlus          gps;
-extern Beacon               *currentBeacon;
-extern logging::Logger      logger;
-extern bool                 sendUpdate;
-extern bool		            sendStandingUpdate;
+extern Configuration        Config;                      // Configuración global
+extern HardwareSerial       gpsSerial;                   // Puerto serie conectado al GPS
+extern TinyGPSPlus          gps;                         // Objeto TinyGPS++ con datos GPS
+extern Beacon               *currentBeacon;              // Beacon activo (configuración del perfil)
+extern logging::Logger      logger;                       // Logger del sistema
+extern bool                 sendUpdate;                  // Flag para solicitar envío de update
+extern bool		            sendStandingUpdate;          // Flag para envío de standing update
 
-extern uint32_t             lastTxTime;
-extern uint32_t             txInterval;
-extern double               lastTxLat;
-extern double               lastTxLng;
-extern double               lastTxDistance;
-extern uint32_t             lastTx;
-extern bool                 disableGPS;
-extern bool                 gpsShouldSleep;
-extern SmartBeaconValues    currentSmartBeaconValues;
+extern uint32_t             lastTxTime;                  // Tiempo (ms) desde última transmisión
+extern uint32_t             txInterval;                  // Intervalo de transmisión en ms
+extern double               lastTxLat;                   // Latitud de la última tx
+extern double               lastTxLng;                   // Longitud de la última tx
+extern double               lastTxDistance;              // Distancia desde la última tx hasta posición actual
+extern uint32_t             lastTx;                      // Temporizador/contador para lógica de SmartBeacon
+extern bool                 disableGPS;                  // Flag para deshabilitar uso del GPS por SW
+extern bool                 gpsShouldSleep;              // Señal para que el GPS entre a modo sleep
+extern SmartBeaconValues    currentSmartBeaconValues;    // Parámetros inteligentes para beaconing
 
-double      currentHeading  = 0;
-double      previousHeading = 0;
-float       bearing         = 0;
+// Variables internas del módulo GPS_Utils
+double      currentHeading  = 0;   // rumbo actual (grados)
+double      previousHeading = 0;   // rumbo anterior (grados)
+float       bearing         = 0;   // variable auxiliar para cálculo de dirección cardinal
 
-bool        gpsIsActive     = true;
+bool        gpsIsActive     = true; // estado local si GPS activo (puede duplicar disableGPS)
 
 
+
+/*
+ * Contiene utilidades para inicializar, leer y procesar datos GPS,
+ * además de la lógica SmartBeacon (distancias, ángulos, etc.).
+ */
 namespace GPS_Utils {
 
+    // Inicializa el puerto serie del GPS y alimenta el módulo si la placa lo requiere.
     void setup() {
         if (disableGPS) {
+            // Si la configuración desactiva el GPS, loguear y salir.
             logger.log(logging::LoggerLevel::LOGGER_LEVEL_WARN, "Main", "GPS disabled");
             return;
         }
         #ifdef LIGHTTRACKER_PLUS_1_0
+            // En algunas placas es necesario controlar VCC del GPS por software
             pinMode(GPS_VCC, OUTPUT);
             digitalWrite(GPS_VCC, LOW);
             delay(200);
         #endif
         #if defined(F4GOH_1W_LoRa_Tracker) || defined(F4GOH_1W_LoRa_Tracker_LLCC68)
+            // Otras placas requieren activar VCC y esperar un poco
             pinMode(GPS_VCC, OUTPUT);
             digitalWrite(GPS_VCC, HIGH);
             delay(200);
         #endif
         
+        // Abrir serial con la velocidad configurada (definida por GPS_BAUD)
         gpsSerial.begin(GPS_BAUD, SERIAL_8N1, GPS_TX, GPS_RX);
     }
 
+    // Calcula distancia y rumbo hacia un "checkpoint" dado y actualiza listas/ordenamiento
     void calculateDistanceCourse(const String& callsign, double checkpointLatitude, double checkPointLongitude) {
+        // distancia en km entre nuestra posición y el checkpoint
         double distanceKm = TinyGPSPlus::distanceBetween(gps.location.lat(), gps.location.lng(), checkpointLatitude, checkPointLongitude) / 1000.0;
+        // rumbo desde nuestra posición hacia el checkpoint
         double courseTo   = TinyGPSPlus::courseTo(gps.location.lat(), gps.location.lng(), checkpointLatitude, checkPointLongitude);
+        // limpieza y ordenamiento de la lista de estaciones escuchadas
         STATION_Utils::deleteListenedStationsByTime();
         STATION_Utils::orderListenedStationsByDistance(callsign, distanceKm, courseTo);
     }
 
+    // Leer todos los bytes disponibles del puerto serie del GPS y pasarlos al parser TinyGPS++
     void getData() {
         if (disableGPS) return;
         while (gpsSerial.available() > 0) gps.encode(gpsSerial.read());
     }
 
+    // Si el GPS tiene tiempo válido, sincroniza el RTC/software clock con los datos del GPS
     void setDateFromData() {
         if (gps.time.isValid()) setTime(gps.time.hour(), gps.time.minute(), gps.time.second(), gps.date.day(), gps.date.month(), gps.date.year());
     }
 
+    // Calcula la distancia desde la última transmisión y decide si se debe enviar un update
     void calculateDistanceTraveled() {
-        currentHeading  = gps.course.deg();
+        currentHeading  = gps.course.deg(); // actualizar rumbo actual
+        // Distancia desde la última tx (metros).
         lastTxDistance  = TinyGPSPlus::distanceBetween(gps.location.lat(), gps.location.lng(), lastTxLat, lastTxLng);
+        // Si ha transcurrido suficiente tiempo desde la última tx (lastTx es contador/tiempo)
         if (lastTx >= txInterval) {
+            // Si supera la distancia mínima configurada, solicitar envío de update
             if (lastTxDistance > currentSmartBeaconValues.minTxDist) {
                 sendUpdate = true;
                 sendStandingUpdate = false;
             } else {
+                // Si no se alcanza la distancia mínima y el beacon tiene modo eco habilitado,
+                // activar la sugerencia de que el GPS entre en sleep para ahorrar energía.
                 if (currentBeacon->gpsEcoMode) {
-                    //
+                    // Debug en serie para diagnosticar por qué no se envía
                     Serial.print("minTxDistance not achieved : ");
                     Serial.println(lastTxDistance);
-                    //
                     gpsShouldSleep = true;
                 }
             }
         }
     }
 
+    // Calcula la variación de rumbo (delta) y decide si enviar update por giro significativo
     void calculateHeadingDelta(int speed) {
         uint8_t TurnMinAngle;
-        double headingDelta = abs(previousHeading - currentHeading);
+        double headingDelta = abs(previousHeading - currentHeading); // diferencia absoluta de rumbo
+        // Solo evaluar giro si ha pasado suficiente tiempo desde la última tx
         if (lastTx > currentSmartBeaconValues.minDeltaBeacon * 1000) {
+            // Calcular umbral dinámico según velocidad:
+            // TurnMinAngle = base + slope / speed (evita división por 0 añadiendo +1)
             if (speed == 0) {
                 TurnMinAngle = currentSmartBeaconValues.turnMinDeg + (currentSmartBeaconValues.turnSlope/(speed + 1));
             } else {
                 TurnMinAngle = currentSmartBeaconValues.turnMinDeg + (currentSmartBeaconValues.turnSlope/speed);
             }
+            // Si el giro excede el umbral y se ha movido la distancia mínima, forzar update
             if (headingDelta > TurnMinAngle && lastTxDistance > currentSmartBeaconValues.minTxDist) {
                 sendUpdate = true;
                 sendStandingUpdate = false;
@@ -134,8 +143,10 @@ namespace GPS_Utils {
         }
     }
 
+    // Comprobar si durante el arranque no llegan tramas GPS; si no hay datos sugiere reset físico
     void checkStartUpFrames() {
         if (disableGPS) return;
+        // Si tras 10s no se han procesado casi caracteres, no hay tramas -> log y mostrar error
         if ((millis() > 10000 && gps.charsProcessed() < 10)) {
             logger.log(logging::LoggerLevel::LOGGER_LEVEL_ERROR, "GPS",
                         "No GPS frames detected! Try to reset the GPS Chip with this "
@@ -144,6 +155,8 @@ namespace GPS_Utils {
         }
     }
 
+    // Construye una representación "humana" del bearing con tres campos (left, center, right)
+    // para mostrar en una sola línea con formato visual fijo.
     String getHumanBearing(const String& left, const String& center, const String& right) {
         String bearing = ">.";
         bearing += left;
@@ -159,9 +172,14 @@ namespace GPS_Utils {
         return bearing;
     }
 
+    // Devuelve una cadena con representación cardinal/visual del rumbo (bearing -> N, NE, E, ...)
+    // Cada rango angular devuelve una línea formateada con ejes y símbolo central.
+    // Nota: la variable 'bearing' se actualiza si la velocidad es mayor que un umbral pequeño.
     String getCardinalDirection(float course) {
-        if (gps.speed.kmph() > 0.5) bearing = course;
+        if (gps.speed.kmph() > 0.5) bearing = course; // solo actualizar bearing si hay velocidad significativa
 
+        // Rutas de decisión: cada rango angular de ~11.25° cubre una dirección compuesta
+        // (estas cadenas están cuidadosamente alineadas para el diseño del display).
         if (bearing >= 354.375 || bearing < 5.625)    return ">.NW.....(N).....NE.<"; // N
         if (bearing >= 5.675 && bearing < 16.875)     return ">.......N.|.....NE..<";
         if (bearing >= 16.875 && bearing < 28.125)    return ">.....N...|...NE....<"; // NEN
@@ -194,7 +212,7 @@ namespace GPS_Utils {
         if (bearing >= 320.625 && bearing < 331.875)  return ">.......NW|.....N...<";
         if (bearing >= 331.875 && bearing < 343.125)  return ">.....NW..|...N.....<"; // NWN
         if (bearing >= 343.125 && bearing < 354.375)  return ">...NW....|.N.......<";
-        return "";
+        return ""; // valor por defecto si no entra en ningún rango (no debería ocurrir)
     }
 
 }
