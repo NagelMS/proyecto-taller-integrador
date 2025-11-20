@@ -630,13 +630,28 @@ A continuación se muestra la Tabla \ref{tab:presupuesto} de presupuesto del pro
     \end{tabularx}
 \end{table}
 
+\section{Conclusiones}
+\begin{itemize}
+    \item El sistema de rastreo basado en la plataforma LilyGo T-Beam, en conjunto con LoRa y APRS, demostró ser una opción eficiente para el monitoreo de ganado en contextos rurales con limitada cobertura celular.
+    \item Se logró establecer correctamente el flujo completo de información: adquisición de posición mediante GPS, empaquetado de datos en tramas APRS, transmisión por enlace LoRa y visualización posterior en plataformas de mapeo compatibles con APRS.
+    \item La integración de telemetría de voltaje de batería dentro de la trama institucional permite no solo localizar al animal, sino también monitorear el estado energético del dispositivo, lo cual es clave para la operación prolongada en campo.
+    \item El uso de \textit{smartbeaconing} permitió adaptar dinámicamente la frecuencia de envío de beacons según el movimiento, evidenciando reducción del intervalo de reporte en condiciones de desplazamiento y una menor frecuencia en reposo.
+    \item A nivel regulatorio, el sistema opera dentro de las bandas y límites de potencia permitidos en Costa Rica, cumpliendo con las disposiciones del PNAF y las restricciones asociadas al servicio de radioaficionados.
 
+\end{itemize}
+
+\section{Recomendaciones}
+\begin{itemize}
+    \item Realizar campañas de prueba más extensas en escenarios rurales representativos (diferentes topografías, densidad de vegetación y distancias) para caracterizar con mayor detalle el alcance, la confiabilidad del enlace y el comportamiento del \textit{smartbeaconing}.
+    \item Implementar filtros o técnicas de suavizado sobre los datos GPS para reducir los saltos bruscos de posición y mejorar el cálculo de velocidad, incrementando la precisión del algoritmo de \textit{smartbeaconing}.
+    \item Incorporar registros sistemáticos de consumo energético (corriente y tensión) bajo distintos patrones de uso, con el objetivo de estimar de forma más precisa la autonomía y dimensionar adecuadamente la batería y posibles sistemas de recarga.
+\end{itemize}
 
 
 
 \section{Cronograma}
 
-Acorde a los avances realizados en el proyecto y los resultados obtenidos, se están cumpliendo los tiempos establecidos, por lo que se plantea continuar con el cronograma propuesto inicialmente. A continuación, se presenta el cronograma detallado de las actividades planificadas para la culminación del proyecto:
+Acorde a los avances realizados en el proyecto y los resultados obtenidos, se cumplieron los tiempos establecidos. A continuación, se presenta el cronograma detallado de las actividades planificadas para la culminación del proyecto:
 
 \begin{figure}[htbp]
     \centering
