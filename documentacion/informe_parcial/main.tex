@@ -308,7 +308,21 @@ El diagrama de tercer nivel elimina la caja negra y muestra componentes internos
 
 El sistema propuesto no se limita a transmitir coordenadas de posición, sino que incorpora una serie de características avanzadas que lo diferencian de un tracker básico y lo orientan a una aplicación productiva en fincas medianas y grandes.
 
-El diseño integra una gestión avanzada de energía mediante el PMIC AXP2101 y las capacidades de bajo consumo del ESP32-DOWDQ6. El microcontrolador puede controlar la alimentación de los módulos GPS y LoRa, habilitándolos únicamente durante ventanas de medición y transmisión. Esto permite maximizar la autonomía en campo y hacer viable el uso del dispositivo en collares alimentados por baterías recargables, e incluso considerar la integración futura de carga solar. Además por medio del software es posible apagar completamente el dispositivo cuando la batería está por debajo del valor de 3.0 V.
+El diseño integra una gestión avanzada de energía mediante el PMIC AXP2101 y las capacidades de bajo consumo del ESP32-DOWDQ6. El microcontrolador puede controlar la alimentación de los módulos GPS y LoRa, habilitándolos únicamente durante ventanas de medición y transmisión. Esto permite maximizar la autonomía en campo y hacer viable el uso del dispositivo en collares alimentados por baterías recargables, e incluso considerar la integración futura de carga solar. Además por medio del software es posible apagar completamente el dispositivo cuando la batería está por debajo del valor de 3.0 V, en las Fig. y Fig. se muestra el diagrama de flujo del proceso de gestión de batería en el sistema.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{fig/pow.png}
+    \caption{Diagrama de flujo del código de gestión de energía}
+    \label{fig:pow.png}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{fig/bat.png}
+    \caption{Diagrama de flujo del código de gestión de batería}
+    \label{fig:bat.png}
+\end{figure}
 
 Además, el sistema hace uso combinado de LoRa y APRS. LoRa proporciona el enlace de largo alcance y baja potencia, mientras que APRS aporta una estructura estándar de tramas pensada para telemetría y localización, lo que permite aprovechar infraestructura ya existente (IGates) y al mismo tiempo mantener flexibilidad para definir diferentes tipos de beacons y cargas útiles según la necesidad de la aplicación (solo posición, posición con nivel de batería, estados especiales, entre otros).
 
