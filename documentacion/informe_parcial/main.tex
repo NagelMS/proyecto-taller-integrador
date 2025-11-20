@@ -314,6 +314,8 @@ Además, el sistema hace uso combinado de LoRa y APRS. LoRa proporciona el enlac
 
 A nivel de arquitectura de software, el firmware integra módulos reutilizables provenientes de librerías de código abierto, lo que facilita añadir funcionalidades avanzadas, como la configuración remota de parámetros (intervalo de reporte, modos de búsqueda, niveles de potencia de transmisión) por medio de downlinks desde el gateway, la definición de políticas de reporte, en las que el tracker puede modificar su frecuencia de transmisión según el movimiento del animal, el nivel de batería o la calidad del enlace. Integración con servicios web y bases de datos que permiten generar historiales, geocercas, alertas de salida de potrero y análisis de rutas.
 
+El tracker incorpora el uso de smartbeaconing y el envío de una trama institucional con telemetría integrada. El smartbeaconing permite ajustar de forma automática el intervalo de transmisión de beacons según el movimiento del tracker: cuando el animal está prácticamente en reposo, el dispositivo envía tramas con menor frecuencia para ahorrar batería y reducir la ocupación del canal; a medida que aumenta la velocidad o se detectan cambios significativos de rumbo, la frecuencia de reporte se incrementa para capturar mejor la trayectoria. Paralelamente, la trama institucional asegura que cada transmisión incluya la identificación del proyecto y la información relevante para el sistema de monitoreo, incorporando campos de telemetría como el voltaje de la batería sin requerir modificaciones profundas al firmware.
+
 Por último, el sistema contempla desde su diseño la escalabilidad y la interoperabilidad. El uso de protocolos establecidos (UART para GPS, SPI para LoRa, I²C para la OLED y sensores auxiliares) permite integrar otros dispositivos en el futuro, como sensores de actividad, temperatura o salud del animal, sin alterar la arquitectura base. Del lado del backend, la utilización de tramas normalizadas y almacenamiento estructurado de la información facilita la integración con aplicaciones web de terceros, paneles de visualización y herramientas analíticas orientadas a la toma de decisiones en manejo de ganado.
 
 \section{Diagrama eléctrico}
@@ -488,13 +490,13 @@ TI2JR-10>APLRG1,WIDE1-1:!LIJgp9;"M  GLoRa APRS \\
 
 El sistema propuesto opera en bandas de radiofrecuencia y, por tanto, se ajusta a la normativa vigente en Costa Rica y a los estándares internacionales aplicables a los servicios utilizados (APRS y LoRa).
 
-En relación con APRS, el servicio se utiliza típicamente en la banda de VHF alrededor de 144–148 MHz, atribuida al servicio de radioaficionados. De acuerdo con el Plan Nacional de Atribución de Frecuencias (PNAF) y el Manual del Radioaficionado de SUTEL \citep{sutel_manual_radioaficionados_2014}, la operación en estas frecuencias requiere contar con una licencia vigente de radioaficionado en las categorías Novicio, Intermedio o Superior. En el contexto del proyecto, se considera que:
+En relación con APRS, el servicio se utiliza típicamente en la banda de VHF alrededor de 144–148 MHz, atribuida al servicio de radioaficionados. De acuerdo con el Plan Nacional de Atribución de Frecuencias (PNAF) y el Manual del Radioaficionado de SUTEL \cite{sutel_manual_radioaficionados_2014}, la operación en estas frecuencias requiere contar con una licencia vigente de radioaficionado en las categorías Novicio, Intermedio o Superior. En el contexto del proyecto, se considera que:
 
 Las transmisiones APRS realizadas para las pruebas se efectúan bajo el indicativo y la licencia del radioaficionado responsable del experimento.
 La potencia de transmisión configurada en el equipo se mantiene por debajo de los límites establecidos para la categoría de licencia utilizada.
-Se respetan las recomendaciones de uso compartido del canal y la naturaleza experimental/telemetría del tráfico APRS, evitando usos que contravengan la reglamentación del servicio de aficionados \citep{micitt_pnaf_2023}.
+Se respetan las recomendaciones de uso compartido del canal y la naturaleza experimental/telemetría del tráfico APRS, evitando usos que contravengan la reglamentación del servicio de aficionados \cite{micitt_pnaf_2023}.
 
-En cuanto a LoRa, el sistema hace uso de bandas de uso libre definidas en el PNAF para aplicaciones de corto alcance, específicamente en el rango de 433,05 a 434,79 MHz y en el rango de novecientos 20,5 a 928 MHz para Costa Rica \citep{sutel_manual_radioaficionados_2014}. La normativa establece un límite de Potencia Isotrópica Radiada Equivalente (PIRE) de treinta decibelios-miliwatt para estos segmentos. El diseño del tracker cumple estos requisitos al:
+En cuanto a LoRa, el sistema hace uso de bandas de uso libre definidas en el PNAF para aplicaciones de corto alcance, específicamente en el rango de 433,05 a 434,79 MHz y en el rango de novecientos 20,5 a 928 MHz para Costa Rica \cite{sutel_manual_radioaficionados_2014}. La normativa establece un límite de Potencia Isotrópica Radiada Equivalente (PIRE) de treinta decibelios-miliwatt para estos segmentos. El diseño del tracker cumple estos requisitos al:
 
 \begin{itemize}
 
@@ -577,11 +579,18 @@ En cuanto al comportamiento dinámico de las transmisiones, se identificó que e
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=1\linewidth]{fig/smart.png}
-    \caption{Smartbeaconing del modulo tracker}
+    \caption{Prueba de smartbeaconing del modulo tracker}
     \label{fig:smart.png}
 \end{figure}
 
-Finalmente, se realizaron ensayos de campo específicos para evaluar el comportamiento del smartbeaconing con telemetría de voltaje de batería activa. En estas pruebas el tracker se configuró para reportar tanto la posición como el nivel de batería, y se observó que, en condiciones de reposo, el intervalo entre beacons fue del orden de cuatro minutos, mientras que en movimiento se redujo aproximadamente a un rango entre un minuto y medio y dos minutos. No obstante, también se detectó que el cálculo de velocidad basado en las lecturas GPS puede presentar saltos bruscos de posición, lo cual introduce cierta imprecisión en la lógica que decide cuándo aumentar la frecuencia de transmisión.
+Finalmente, se realizaron ensayos de campo específicos para evaluar el comportamiento del smartbeaconing con telemetría de voltaje de batería activa. En estas pruebas el tracker se configuró para reportar tanto la posición como el nivel de batería, y se observó que, en condiciones de reposo, el intervalo entre beacons fue del orden de cuatro minutos, mientras que en movimiento se redujo aproximadamente a un rango entre un minuto y medio y dos minutos. No obstante, también se detectó que el cálculo de velocidad basado en las lecturas GPS puede presentar saltos bruscos de posición, lo cual introduce cierta imprecisión en la lógica que decide cuándo aumentar la frecuencia de transmisión. A continuación, se muestra una comparación de perfiles basado en pruebas con el tracker, que muestra los intervalos de transmisión según a la velocidad utilizando una ecuación de interpolación:
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{fig/smartbeaconing.jpeg}
+    \caption{Comparación de perfiles usando smartbeaconing con el modulo tracker}
+    \label{fig:smartbeaconing.jpeg}
+\end{figure}
 
 \section{Presupuesto}
 
