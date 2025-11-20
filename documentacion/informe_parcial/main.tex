@@ -308,15 +308,22 @@ El diagrama de tercer nivel elimina la caja negra y muestra componentes internos
 
 El sistema propuesto no se limita a transmitir coordenadas de posición, sino que incorpora una serie de características avanzadas que lo diferencian de un tracker básico y lo orientan a una aplicación productiva en fincas medianas y grandes.
 
-El diseño integra una gestión avanzada de energía mediante el PMIC AXP2101 y las capacidades de bajo consumo del ESP32-DOWDQ6. El microcontrolador puede controlar la alimentación de los módulos GPS y LoRa, habilitándolos únicamente durante ventanas de medición y transmisión. Esto permite maximizar la autonomía en campo y hacer viable el uso del dispositivo en collares alimentados por baterías recargables, e incluso considerar la integración futura de carga solar.
+El diseño integra una gestión avanzada de energía mediante el PMIC AXP2101 y las capacidades de bajo consumo del ESP32-DOWDQ6. El microcontrolador puede controlar la alimentación de los módulos GPS y LoRa, habilitándolos únicamente durante ventanas de medición y transmisión. Esto permite maximizar la autonomía en campo y hacer viable el uso del dispositivo en collares alimentados por baterías recargables, e incluso considerar la integración futura de carga solar. Además por medio del software es posible apagar completamente el dispositivo cuando la batería está por debajo del valor de 3.0 V.
 
 Además, el sistema hace uso combinado de LoRa y APRS. LoRa proporciona el enlace de largo alcance y baja potencia, mientras que APRS aporta una estructura estándar de tramas pensada para telemetría y localización, lo que permite aprovechar infraestructura ya existente (IGates) y al mismo tiempo mantener flexibilidad para definir diferentes tipos de beacons y cargas útiles según la necesidad de la aplicación (solo posición, posición con nivel de batería, estados especiales, entre otros).
 
-A nivel de arquitectura de software, el firmware integra módulos reutilizables provenientes de librerías de código abierto, lo que facilita añadir funcionalidades avanzadas, como la configuración remota de parámetros (intervalo de reporte, modos de búsqueda, niveles de potencia de transmisión) por medio de downlinks desde el gateway, la definición de políticas de reporte, en las que el tracker puede modificar su frecuencia de transmisión según el movimiento del animal, el nivel de batería o la calidad del enlace. Integración con servicios web y bases de datos que permiten generar historiales, geocercas, alertas de salida de potrero y análisis de rutas.
+A nivel de arquitectura de software, el firmware integra módulos reutilizables provenientes de bibliotecas de código abierto, lo que facilita añadir funcionalidades avanzadas, como la configuración remota de parámetros (intervalo de reporte, modos de búsqueda, niveles de potencia de transmisión) por medio de downlinks desde el gateway, la definición de políticas de reporte, en las que el tracker puede modificar su frecuencia de transmisión según el movimiento del animal, el nivel de batería o la calidad del enlace. Integración con servicios web y bases de datos que permiten generar historiales, geocercas, alertas de salida de potrero y análisis de rutas.
 
-El tracker incorpora el uso de smartbeaconing y el envío de una trama institucional con telemetría integrada. El smartbeaconing permite ajustar de forma automática el intervalo de transmisión de beacons según el movimiento del tracker: cuando el animal está prácticamente en reposo, el dispositivo envía tramas con menor frecuencia para ahorrar batería y reducir la ocupación del canal; a medida que aumenta la velocidad o se detectan cambios significativos de rumbo, la frecuencia de reporte se incrementa para capturar mejor la trayectoria. Paralelamente, la trama institucional asegura que cada transmisión incluya la identificación del proyecto y la información relevante para el sistema de monitoreo, incorporando campos de telemetría como el voltaje de la batería sin requerir modificaciones profundas al firmware.
+El tracker incorpora el uso de smartbeaconing y el envío de una trama institucional con telemetría integrada. El smartbeaconing permite ajustar de forma automática el intervalo de transmisión de beacons según el movimiento del tracker: cuando el animal está prácticamente en reposo, el dispositivo envía tramas con menor frecuencia para ahorrar batería y reducir la ocupación del canal; a medida que aumenta la velocidad o se detectan cambios significativos de rumbo, la frecuencia de reporte se incrementa para capturar mejor la trayectoria. Paralelamente, la trama institucional asegura que cada transmisión incluya la identificación del proyecto y la información relevante para el sistema de monitoreo, incorporando campos de telemetría como el voltaje de la batería sin requerir modificaciones profundas al firmware. A continuación, se muestra una comparación de perfiles basado en pruebas con el tracker, que muestra los intervalos de transmisión según a la velocidad utilizando una ecuación de interpolación:
 
-Por último, el sistema contempla desde su diseño la escalabilidad y la interoperabilidad. El uso de protocolos establecidos (UART para GPS, SPI para LoRa, I²C para la OLED y sensores auxiliares) permite integrar otros dispositivos en el futuro, como sensores de actividad, temperatura o salud del animal, sin alterar la arquitectura base. Del lado del backend, la utilización de tramas normalizadas y almacenamiento estructurado de la información facilita la integración con aplicaciones web de terceros, paneles de visualización y herramientas analíticas orientadas a la toma de decisiones en manejo de ganado.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{fig/smartbeaconing.jpeg}
+    \caption{Comparación de perfiles usando smartbeaconing con el modulo tracker}
+    \label{fig:smartbeaconing.jpeg}
+\end{figure}
+
+Por último, el sistema contempla desde su diseño la escalabilidad y la interoperabilidad. El uso de protocolos establecidos (UART para GPS, SPI para LoRa, I2C para la OLED y sensores auxiliares) permite integrar otros dispositivos en el futuro, como sensores de actividad, temperatura o salud del animal, sin alterar la arquitectura base. Del lado del backend, la utilización de tramas normalizadas y almacenamiento estructurado de la información facilita la integración con aplicaciones web de terceros, paneles de visualización y herramientas analíticas orientadas a la toma de decisiones en manejo de ganado.
 
 \section{Diagrama eléctrico}
 
@@ -444,7 +451,7 @@ Debido a que el \textit{firmware} utilizado está basado en repositorio de Ricar
 
 El código utiliza \textit{APIs} públicas de proyectos de código abierto, las cuales permiten la configuración y manejo de los periféricos integrados en la placa de desarrollo, un ejemplo de esto es \textit{RadioLib} adjunto en anexos, la cual es una librería para comunicación inalámbrica que soporta múltiples módulos de radio, incluyendo LoRa, y proporciona una interfaz sencilla para configurar y utilizar el transceptor SX1278. La librería maneja detalles complejos de la comunicación LoRa, como la modulación, codificación y gestión de paquetes, permitiendo a los desarrolladores centrarse en la lógica de su aplicación sin preocuparse por los aspectos de bajo nivel del protocolo LoRa, permitiendo además la configuración de parámetros como la frecuencia, potencia de transmisión, ancho de banda y otros ajustes necesarios para la correcta operación.
 
-De manera similar, el código provee una gran cantidad de utiliarios \textit{wrappers} de librerías de Arduino para la gestión de más recursos de la placa, un claro ejemplo de esto son las librerías \textit{web\_utils.h}, \textit{wx\_utils.h} y \textit{wifi\_utils.h}
+De manera similar, el código provee una gran cantidad de utiliarios \textit{wrappers} de bibliotecas de Arduino para la gestión de más recursos de la placa, un claro ejemplo de esto son las bibliotecas \textit{web\_utils.h}, \textit{wx\_utils.h} y \textit{wifi\_utils.h}
 
 \section{Tramas de datos utilizadas}
 
@@ -524,7 +531,7 @@ Finalmente, desde el punto de vista de buenas prácticas de ingeniería, el sist
 
 \section{Resultados}
 
-En el dispositivo, se logró la configuración y operación del módulo LilyGo T-Beam v1.2 como tracker LoRa/APRS. El firmware permite obtener lecturas de posición a partir del receptor GPS, empaquetarlas en tramas APRS y transmitirlas a través del transceptor LoRa. Como resultado visible para el usuario, se actualizó el recurso gráfico desplegado en la pantalla OLED, sustituyendo el ícono genérico por uno asociado semánticamente a la aplicación de rastreo ganadero. Esta mejora, aunque es sencilla, contribuye a una interfaz más intuitiva y orientada al caso de uso final.
+Inicialmente, en el dispositivo, se logró la configuración y operación del módulo LilyGo T-Beam v1.2 como tracker LoRa/APRS. El firmware permite obtener lecturas de posición a partir del receptor GPS, empaquetarlas en tramas APRS y transmitirlas a través del transceptor LoRa. Como resultado visible para el usuario, se actualizó el recurso gráfico desplegado en la pantalla OLED, sustituyendo el ícono genérico por uno asociado semánticamente a la aplicación de rastreo ganadero. Esta mejora, aunque es sencilla, contribuye a una interfaz más intuitiva y orientada al caso de uso final.
 
 \begin{figure}[htbp]
     \centering
@@ -569,10 +576,11 @@ Esto se logra únicamente mediante los parámetros de configuración disponibles
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=1\linewidth]{fig/graf.jpeg}
-    \caption{Desempeño de la batería en el tiempo del modulo tracker}
-    \label{fig:graf.jpeg}
+    \includegraphics[width=1\linewidth]{fig/menu.jpeg}
+    \caption{Menu interno de configuración}
+    \label{fig:menu}
 \end{figure}
+
 
 En cuanto al comportamiento dinámico de las transmisiones, se identificó que el mecanismo de smartbeaconing se encuentra habilitado en el firmware utilizado. Este esquema ajusta el intervalo de envío de beacons en función del movimiento del tracker, incrementando la frecuencia de reporte cuando la velocidad es mayor. Durante la configuración se observó la importancia de revisar el parámetro smartBeaconSetting para cada uno de los perfiles de beacon definidos, dado que algunos perfiles lo tienen activado y otros no. Como resultado de esta revisión se estableció la necesidad de documentar claramente qué perfiles se emplearán en pruebas a pie, en vehículo u otros escenarios, y con qué ajustes de smartbeaconing asociados.
 
@@ -583,13 +591,15 @@ En cuanto al comportamiento dinámico de las transmisiones, se identificó que e
     \label{fig:smart.png}
 \end{figure}
 
-Finalmente, se realizaron ensayos de campo específicos para evaluar el comportamiento del smartbeaconing con telemetría de voltaje de batería activa. En estas pruebas el tracker se configuró para reportar tanto la posición como el nivel de batería, y se observó que, en condiciones de reposo, el intervalo entre beacons fue del orden de cuatro minutos, mientras que en movimiento se redujo aproximadamente a un rango entre un minuto y medio y dos minutos. No obstante, también se detectó que el cálculo de velocidad basado en las lecturas GPS puede presentar saltos bruscos de posición, lo cual introduce cierta imprecisión en la lógica que decide cuándo aumentar la frecuencia de transmisión. A continuación, se muestra una comparación de perfiles basado en pruebas con el tracker, que muestra los intervalos de transmisión según a la velocidad utilizando una ecuación de interpolación:
+Finalmente, se realizaron ensayos de campo específicos para evaluar el comportamiento del smartbeaconing con telemetría de voltaje de batería activa. En estas pruebas el tracker se configuró para reportar tanto la posición como el nivel de batería, y se observó que, en condiciones de reposo, el intervalo entre beacons fue del orden de cuatro minutos, mientras que en movimiento se redujo aproximadamente a un rango entre un minuto y medio y dos minutos. No obstante, también se detectó que el cálculo de velocidad basado en las lecturas GPS puede presentar saltos bruscos de posición, como se observa en la Fig. \ref{fig:smart.png}, lo cual introduce cierta imprecisión en la lógica que decide cuándo aumentar la frecuencia de transmisión. 
+
+En la Fig. \ref{fig:graf.jpeg} se observa el desempeño de la batería obtenido por medio de la telemetría, esto tambien comprueba el funcionamiento de apagado tras obtener una tensión de 3.0 V en la batería.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=1\linewidth]{fig/smartbeaconing.jpeg}
-    \caption{Comparación de perfiles usando smartbeaconing con el modulo tracker}
-    \label{fig:smartbeaconing.jpeg}
+    \includegraphics[width=1\linewidth]{fig/grafbat.jpeg}
+    \caption{Desempeño de la batería en el tiempo del modulo tracker}
+    \label{fig:graf.jpeg}
 \end{figure}
 
 \section{Presupuesto}
