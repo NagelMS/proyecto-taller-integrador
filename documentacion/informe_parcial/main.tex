@@ -17,6 +17,7 @@
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta, positioning}
 \usepackage{graphicx}
+\usepackage{tabularx}
 
 \usepackage{array}
 \usepackage{booktabs}
@@ -84,7 +85,7 @@
 % in the abstract or keywords.
 \begin{abstract}
 
-Este documento recopila información sobre el desarrollo de un módulo Tracker basado en tecnología LoRa/APRS, enfocado en la transmisión y recepción de datos de localización en tiempo real a una página web. Tiene como objetivo abordar detalles técnicos de la implementación, protocolos de comunicación utilizados, definición de tramas y finalmente presenta un breve intinerario de las actividades a realizar para completar el proyecto.
+Este documento recopila información sobre el desarrollo de un módulo Tracker basado en tecnología LoRa/APRS, enfocado en la transmisión y recepción de datos de localización en tiempo real a una página web. Tiene como objetivo abordar detalles técnicos de la implementación, protocolos de comunicación utilizados, definición de tramas y finalmente presenta un breve itinerario de las actividades a realizar para completar el proyecto.
 
 \end{abstract}
 
@@ -146,7 +147,7 @@ LoRa es una técnica para modulación RF creada por Semtech, su nombre hace refe
 
 \subsubsection{Aplicaciones}
 
-Las aplicaciones de LoRa, están relacionadas a transmisión de información a larga distancia, lo más usual telemetría utilizando sensores, esto ayuda en campos como la agricultura, donde se puede realizar monitoreo del clima o humedad y distintos factores que pueden afectar al cultivo. Por lo mismo, tambien es muy util para sistemas de localizacióm.
+Las aplicaciones de LoRa, están relacionadas a transmisión de información a larga distancia, lo más usual telemetría utilizando sensores, esto ayuda en campos como la agricultura, donde se puede realizar monitoreo del clima o humedad y distintos factores que pueden afectar al cultivo. Por lo mismo, tambien es muy util para sistemas de localización.
 
 \subsubsection{Banda de Frecuencias}
 
@@ -289,7 +290,7 @@ El diagrama de tercer nivel elimina la caja negra y muestra componentes internos
 
 \begin{itemize}
     \item \textbf{GPS a Microcontrolador.} El receptor entrega posición, tiempo y calidad del \emph{fix}. El microcontrolador (por ejemplo, ESP32/T-Beam) filtra y valida: si el \emph{fix} es válido y coincide con una ventana de reporte, empaqueta la ubicación.
-    \item \textbf{PMIC a Microcontrolador (energía) y Microcontrolador a PMIC (control).} El PMIC suministra 3{,}3~V y gestiona batería y carga. A su vez, el microcontrolador ordena encender o apagar rieles (GNSS y radio) para ahorrar energía, implementando el ciclo dormir–despertar–medir–enviar.
+    \item \textbf{PMIC a Microcontrolador (energía) y Microcontrolador a PMIC (control).} El PMIC suministra 3{,}3~V y gestiona batería y carga. A su vez, el microcontrolador ordena encender o apagar rieles (GPS y radio) para ahorrar energía, implementando el ciclo dormir–despertar–medir–enviar.
     \item \textbf{Microcontrolador a Módulo LoRa.} El microcontrolador envía el dato procesado (payload compacto) por SPI al transceptor. El radio modula y transmite por la antena. Cuando corresponde, abre ventanas de recepción para \emph{downlinks}.
     \item \textbf{Módulo LoRa a Gateway central.} El gateway recibe la trama aérea y la entrega al servidor de red, donde se decodifica (llaves, puerto y esquema del \emph{payload}) y se normaliza.
     \item \textbf{Gateway central a Base de datos.} Una vez decodificados, los datos se almacenan (latitud, longitud, batería, RSSI/SNR y marcas de tiempo). Con estos registros se calculan métricas e historiales.
@@ -303,16 +304,27 @@ El diagrama de tercer nivel elimina la caja negra y muestra componentes internos
     \label{fig:tercer_nivel}
 \end{figure}
 
+\section{Características avanzadas del sistema}
+
+El sistema propuesto no se limita a transmitir coordenadas de posición, sino que incorpora una serie de características avanzadas que lo diferencian de un tracker básico y lo orientan a una aplicación productiva en fincas medianas y grandes.
+
+El diseño integra una gestión avanzada de energía mediante el PMIC AXP2101 y las capacidades de bajo consumo del ESP32-DOWDQ6. El microcontrolador puede controlar la alimentación de los módulos GPS y LoRa, habilitándolos únicamente durante ventanas de medición y transmisión. Esto permite maximizar la autonomía en campo y hacer viable el uso del dispositivo en collares alimentados por baterías recargables, e incluso considerar la integración futura de carga solar.
+
+Además, el sistema hace uso combinado de LoRa y APRS. LoRa proporciona el enlace de largo alcance y baja potencia, mientras que APRS aporta una estructura estándar de tramas pensada para telemetría y localización, lo que permite aprovechar infraestructura ya existente (IGates) y al mismo tiempo mantener flexibilidad para definir diferentes tipos de beacons y cargas útiles según la necesidad de la aplicación (solo posición, posición con nivel de batería, estados especiales, entre otros).
+
+A nivel de arquitectura de software, el firmware integra módulos reutilizables provenientes de librerías de código abierto, lo que facilita añadir funcionalidades avanzadas, como la configuración remota de parámetros (intervalo de reporte, modos de búsqueda, niveles de potencia de transmisión) por medio de downlinks desde el gateway, la definición de políticas de reporte, en las que el tracker puede modificar su frecuencia de transmisión según el movimiento del animal, el nivel de batería o la calidad del enlace. Integración con servicios web y bases de datos que permiten generar historiales, geocercas, alertas de salida de potrero y análisis de rutas.
+
+Por último, el sistema contempla desde su diseño la escalabilidad y la interoperabilidad. El uso de protocolos establecidos (UART para GPS, SPI para LoRa, I²C para la OLED y sensores auxiliares) permite integrar otros dispositivos en el futuro, como sensores de actividad, temperatura o salud del animal, sin alterar la arquitectura base. Del lado del backend, la utilización de tramas normalizadas y almacenamiento estructurado de la información facilita la integración con aplicaciones web de terceros, paneles de visualización y herramientas analíticas orientadas a la toma de decisiones en manejo de ganado.
 
 \section{Diagrama eléctrico}
 
 Para el sistema utilizado se presenta el diagrama eléctrico de la tarjeta de desarrollo del tracker, el ESP32 del LilyGo's T-Beam ESP32 LoRa 433MHz SX1276 \cite{tbeam_v12_schematic}. El ESP32 gobierna la radio LoRa mediante el bus SPI y líneas adicionales de control. El SPI suministra reloj, datos y selección de chip al transceptor, mientras un par de GPIO se asignan a las interrupciones del radio y a la señal de reinicio. Esta arquitectura permite operar el firmware en Clase A: el radio permanece en reposo la mayor parte del tiempo, se activa para transmitir la trama de posición y vuelve al modo de bajo consumo cuando finalizan las ventanas de recepción. El enlace de RF sale de la placa a través de un conector de antena y una pista de 50 ohm, lo que permite ubicar la antena en el exterior de la caja roja del collar para maximizar la cobertura en campo.
 
-El GNSS se conecta al ESP32 por un puerto UART dedicado. El par TX/RX se utiliza para configurar el receptor y para leer tramas NMEA o formato binario, y se puede emplear la salida de pulso por segundo para estampar tiempo con precisión cuando sea necesario. La alimentación del GNSS se gestiona desde el microcontrolador mediante una línea de habilitación o un riel conmutable del gestor de energía, de modo que el receptor permanezca apagado entre mediciones y solo se energice durante una ventana breve para obtener el arreglo y conservar efemérides, con la consiguiente reducción del tiempo a primer arreglo y del consumo total.
+El GPS se conecta al ESP32 por un puerto UART dedicado. El par TX/RX se utiliza para configurar el receptor y para leer tramas NMEA o formato binario, y se puede emplear la salida de pulso por segundo para estampar tiempo con precisión cuando sea necesario. La alimentación del GPS se gestiona desde el microcontrolador mediante una línea de habilitación o un riel conmutable del gestor de energía, de modo que el receptor permanezca apagado entre mediciones y solo se energice durante una ventana breve para obtener el arreglo y conservar efemérides, con la consiguiente reducción del tiempo a primer arreglo y del consumo total.
 
-La alimentación del T-Beam parte de una celda de ion litio o polímero de litio y entra a un PMIC con cargador integrado. Este gestor entrega un riel principal a 3,3 V para el ESP32 y, según el diseño de la placa, rieles conmutables para el módulo LoRa y el GNSS. Desde la perspectiva del diagrama, el microcontrolador controla estos rieles mediante pines de habilitación, lo que proporciona un control de energía a nivel de hardware y posibilita autonomías prolongadas en campo. El puerto USB con su convertidor USB a UART se reserva para programación y diagnóstico en taller, y el mismo conector alimenta al PMIC para la recarga de la batería antes de sellar la caja.
+La alimentación del T-Beam parte de una celda de ion litio o polímero de litio y entra a un PMIC con cargador integrado. Este gestor entrega un riel principal a 3,3 V para el ESP32 y, según el diseño de la placa, rieles conmutables para el módulo LoRa y el GPS. Desde la perspectiva del diagrama, el microcontrolador controla estos rieles mediante pines de habilitación, lo que proporciona un control de energía a nivel de hardware y posibilita autonomías prolongadas en campo. El puerto USB con su convertidor USB a UART se reserva para programación y diagnóstico en taller, y el mismo conector alimenta al PMIC para la recarga de la batería antes de sellar la caja.
 
-Finalmente, conviene destacar dos aspectos eléctricos clave para esta aplicación rural: la ruta de RF hasta el conector de antena, incluida la red de adaptación, ya que la antena se instalará en el exterior o en una zona del encapsulado con buena transparencia electromagnética, y la separación lógica de buses, con SPI para la radio, UART para el GNSS e I²C para sensores auxiliares como la IMU o el medidor de batería. 
+Finalmente, conviene destacar dos aspectos eléctricos clave para esta aplicación rural: la ruta de RF hasta el conector de antena, incluida la red de adaptación, ya que la antena se instalará en el exterior o en una zona del encapsulado con buena transparencia electromagnética, y la separación lógica de buses, con SPI para la radio, UART para el GPS e I²C para sensores auxiliares como la IMU o el medidor de batería. 
 
 \begin{figure}[htbp]
     \centering
@@ -471,9 +483,46 @@ TI2JR-10>APLRG1,WIDE1-1:!LIJgp9;"M  GLoRa APRS \\
 % if you want by leaving the argument blank
 \vspace{1cm}
 
-\section{Resultados preeliminares}
 
-Se actualizó el recurso gráfico mostrado en la pantalla para que el ícono sea semánticamente consistente con la aplicación (rastreo ganadero) como se observa en la Fig. \ref{fig:preeliminares.jpg}. Adicionalmente, se implementó una política de ahorro energético para la OLED: tras el encendido, el display permanece activo por 4 s y luego se desactiva de forma programada, se puede activar de nuevo tras presionar rápidamente el botón central del modulo.
+\section{Cumplimiento de leyes y legislación}
+
+El sistema propuesto opera en bandas de radiofrecuencia y, por tanto, se ajusta a la normativa vigente en Costa Rica y a los estándares internacionales aplicables a los servicios utilizados (APRS y LoRa).
+
+En relación con APRS, el servicio se utiliza típicamente en la banda de VHF alrededor de 144–148 MHz, atribuida al servicio de radioaficionados. De acuerdo con el Plan Nacional de Atribución de Frecuencias (PNAF) y el Manual del Radioaficionado de SUTEL \citep{sutel_manual_radioaficionados_2014}, la operación en estas frecuencias requiere contar con una licencia vigente de radioaficionado en las categorías Novicio, Intermedio o Superior. En el contexto del proyecto, se considera que:
+
+Las transmisiones APRS realizadas para las pruebas se efectúan bajo el indicativo y la licencia del radioaficionado responsable del experimento.
+La potencia de transmisión configurada en el equipo se mantiene por debajo de los límites establecidos para la categoría de licencia utilizada.
+Se respetan las recomendaciones de uso compartido del canal y la naturaleza experimental/telemetría del tráfico APRS, evitando usos que contravengan la reglamentación del servicio de aficionados \citep{micitt_pnaf_2023}.
+
+En cuanto a LoRa, el sistema hace uso de bandas de uso libre definidas en el PNAF para aplicaciones de corto alcance, específicamente en el rango de 433,05 a 434,79 MHz y en el rango de novecientos 20,5 a 928 MHz para Costa Rica \citep{sutel_manual_radioaficionados_2014}. La normativa establece un límite de Potencia Isotrópica Radiada Equivalente (PIRE) de treinta decibelios-miliwatt para estos segmentos. El diseño del tracker cumple estos requisitos al:
+
+\begin{itemize}
+
+\item Seleccionar como frecuencia de operación una portadora incluida en las bandas de uso libre permitidas.
+
+\item Configurar el transceptor LoRa con un nivel de potencia de salida y una ganancia de antena tales que la PIRE resultante no exceda el límite de treinta decibelios-miliwatt.
+
+\item Emplear un esquema de transmisión de baja ocupación, con tramas cortas y espaciadas, minimizando la probabilidad de interferencia con otros usuarios de la banda.
+
+\end{itemize}
+
+Desde la perspectiva de estándares y designadores de emisión, se identificó que:
+
+\begin{itemize}
+
+\item APRS puede clasificarse como una emisión F1D (modulación en frecuencia, una portadora, transmisión de datos/telemetría).
+
+\item LoRa, por su naturaleza de modulación de espectro ensanchado basada en barridos de frecuencia, puede asimilarse a una emisión G1D (modulación en fase, una portadora, transmisión de datos/telemetría).
+
+\item El tracker se ha configurado de forma que sus parámetros de operación (ancho de banda, factor de expansión, tiempo de ocupación de canal) se mantengan dentro de lo esperable para este tipo de servicios de baja potencia y largo alcance, respetando los perfiles de emisión asociados a dichas designaciones.
+
+\end{itemize}
+
+Finalmente, desde el punto de vista de buenas prácticas de ingeniería, el sistema emplea módulos de radio comerciales que cumplen con certificaciones de compatibilidad electromagnética y seguridad eléctrica en los mercados donde se comercializan, y la topología propuesta para la instalación en campo (collar con antena exterior, gateway fijo y backend remoto) prioriza la operación en bandas no licenciadas y el cumplimiento de los límites de potencia. Con base en lo anterior, el sistema cumple con la normativa costarricense aplicable y se alinea con los estándares técnicos internacionalmente aceptados para aplicaciones de telemetría y rastreo de bajo consumo.
+
+\section{Resultados}
+
+En el dispositivo, se logró la configuración y operación del módulo LilyGo T-Beam v1.2 como tracker LoRa/APRS. El firmware permite obtener lecturas de posición a partir del receptor GPS, empaquetarlas en tramas APRS y transmitirlas a través del transceptor LoRa. Como resultado visible para el usuario, se actualizó el recurso gráfico desplegado en la pantalla OLED, sustituyendo el ícono genérico por uno asociado semánticamente a la aplicación de rastreo ganadero. Esta mejora, aunque es sencilla, contribuye a una interfaz más intuitiva y orientada al caso de uso final.
 
 \begin{figure}[htbp]
     \centering
@@ -482,7 +531,7 @@ Se actualizó el recurso gráfico mostrado en la pantalla para que el ícono sea
     \label{fig:preeliminares.jpg}
 \end{figure}
 
-Además, fue posible visualizar el rastreador en el mapa de APRS Track Direct, se puede observar parte de un recorrido simple realizado en el campus central de Tecnológico de Costa Rica, se puede denotar tambien la utilización de un animal como simbolo para el rastreador, con el fin de hacer alusión a la aplicación desarrollada.
+Además, fue posible visualizar el tracker en el mapa de APRS Track Direct, se puede observar parte de un recorrido simple realizado en el campus central de Tecnológico de Costa Rica, se puede denotar tambien la utilización de un animal como simbolo para el tracker, con el fin de hacer alusión a la aplicación desarrollada.
 
 \begin{figure}[htbp]
     \centering
@@ -491,16 +540,90 @@ Además, fue posible visualizar el rastreador en el mapa de APRS Track Direct, s
     \label{fig:track-direct1.jpg}
 \end{figure}
 
-\section{Presupuesto}
+Adicionalmente, se implementó una política de ahorro energético en la pantalla, de modo que el display se mantiene encendido únicamente durante un intervalo breve tras el encendido o después de la interacción del usuario con el botón central. Transcurrido un tiempo configurado, la OLED se apaga automáticamente, reduciendo el consumo sin sacrificar la funcionalidad de monitoreo local.
 
-A continuación se muestra la tabla del presupuesto del proyecto, nótese que es necesario, además del módulo y su alimentación mediante una batería de Li-Ion, un collar ajustable para poner al animal, así como un protector para contener el módulo y evitar fallos por factores mecánicos y ambientales. Para un producto, se necesita una única unidad de cada elemento para su producción.
+Desde el punto de vista de comunicaciones, el tracker fue visualizado correctamente en el mapa de APRS Track Direct, empleando un símbolo de animal para representar el nodo en el entorno gráfico. Se realizaron recorridos de prueba en el campus del Tecnológico de Costa Rica, durante los cuales se observaron reportes periódicos de posición y se confirmó la correcta decodificación de las tramas APRS en el backend. Estos ensayos demuestran que:
+
+\begin{itemize}
+
+\item El formato de las tramas generadas es compatible con la infraestructura APRS existente.
+
+\item El enlace LoRa/APRS es capaz de transportar la información de ubicación desde el tracker hasta el servidor.
+
+\item La información resulta interpretable en una interfaz cartográfica estándar, lo que facilita su uso por parte de usuarios no técnicos.
+
+\end{itemize}
+
+Durante las pruebas finales se comprobó que la configuración por defecto del firmware ya permite el envío de una trama institucional junto con telemetría básica, incluyendo el valor del voltaje de la batería. 
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.95\linewidth]{fig/presupuesto.png}
-    \caption{Presupuesto de la aplicación del proyecto}
-    \label{fig:presupuesto.png}
+    \includegraphics[width=1\linewidth]{fig/inst.png}
+    \caption{Trama institucional del modulo tracker}
+    \label{fig:inst.png}
 \end{figure}
+
+Esto se logra únicamente mediante los parámetros de configuración disponibles en el propio tracker. Adicionalmente, se verificó que el menú de configuración del dispositivo puede adaptarse con facilidad al idioma español, de modo que se pueda ofrecer una interfaz más amigable para el usuario final sin afectar la lógica de operación del sistema.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{fig/graf.jpeg}
+    \caption{Desempeño de la batería en el tiempo del modulo tracker}
+    \label{fig:graf.jpeg}
+\end{figure}
+
+En cuanto al comportamiento dinámico de las transmisiones, se identificó que el mecanismo de smartbeaconing se encuentra habilitado en el firmware utilizado. Este esquema ajusta el intervalo de envío de beacons en función del movimiento del tracker, incrementando la frecuencia de reporte cuando la velocidad es mayor. Durante la configuración se observó la importancia de revisar el parámetro smartBeaconSetting para cada uno de los perfiles de beacon definidos, dado que algunos perfiles lo tienen activado y otros no. Como resultado de esta revisión se estableció la necesidad de documentar claramente qué perfiles se emplearán en pruebas a pie, en vehículo u otros escenarios, y con qué ajustes de smartbeaconing asociados.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\linewidth]{fig/smart.png}
+    \caption{Smartbeaconing del modulo tracker}
+    \label{fig:smart.png}
+\end{figure}
+
+Finalmente, se realizaron ensayos de campo específicos para evaluar el comportamiento del smartbeaconing con telemetría de voltaje de batería activa. En estas pruebas el tracker se configuró para reportar tanto la posición como el nivel de batería, y se observó que, en condiciones de reposo, el intervalo entre beacons fue del orden de cuatro minutos, mientras que en movimiento se redujo aproximadamente a un rango entre un minuto y medio y dos minutos. No obstante, también se detectó que el cálculo de velocidad basado en las lecturas GPS puede presentar saltos bruscos de posición, lo cual introduce cierta imprecisión en la lógica que decide cuándo aumentar la frecuencia de transmisión.
+
+\section{Presupuesto}
+
+A continuación se muestra la Tabla \ref{tab:presupuesto} de presupuesto del proyecto, nótese que es necesario, además del módulo y su alimentación mediante una batería de Li-Ion, un collar ajustable para poner al animal, así como un protector para contener el módulo y evitar fallos por factores mecánicos y ambientales. Para un producto, se necesita una única unidad de cada elemento para su producción.
+
+\begin{table}[!ht]
+    \centering
+    \small
+    \renewcommand{\arraystretch}{1.3}% 
+    \caption{Presupuesto estimado por unidad del tracker LoRa/APRS}
+    \label{tab:presupuesto}
+    \begin{tabularx}{\columnwidth}{
+        >{\raggedright\arraybackslash}X
+        >{\centering\arraybackslash}p{0.12\columnwidth}
+        >{\centering\arraybackslash}p{0.18\columnwidth}
+        >{\centering\arraybackslash}p{0.18\columnwidth}
+    }
+        \hline
+        \textbf{Concepto} & \textbf{Cantidad} & \textbf{C. unitario [CRC]} & \textbf{C. total [CRC]} \\
+        \hline
+        LilyGo T-Beam v1.2 (tracker LoRa/APRS)      & 1  & 15\,500  & 15\,500  \\
+        Batería Li-Ion 18650 3000 mAh               & 1  & 4\,000   & 4\,000   \\
+        Collar ajustable para ganado                & 1  & 5\,000   & 5\,000   \\
+        Caja / protector IP65 para módulo           & 1  & 6\,000   & 6\,000   \\
+        Cables, conectores y accesorios menores     & 1  & 2\,500   & 2\,500   \\
+        Impresión 3D de piezas de montaje           & 1  & 5\,000   & 5\,000   \\
+        \hline
+        \textbf{Subtotal hardware}                  &    &          & 38\,000  \\
+        \hline
+        Horas ingeniero (diseño hw/fw y pruebas)    & 20 & 37\,700  & 754\,000 \\
+        \textbf{Subtotal mano de obra profesional}  &    &          & 754\,000 \\
+        \hline
+        Costos administrativos y varios (10\%)      &    &          & 79\,200  \\
+        \hline
+        \textbf{Total estimado}                     &    &          & \textbf{871\,200} \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+
+
+
 
 \section{Cronograma}
 
